@@ -69,6 +69,20 @@ body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidde
   display: flex; flex: 1; overflow: hidden;
 }
 
+/* ── Panel column (width controlled by JS) ── */
+.panel-col {
+  display: flex; flex-direction: column; overflow: hidden;
+  flex-shrink: 0; height: 100%;
+}
+.panel-col.sidebar { flex: 1; min-width: 200px; flex-shrink: 1; }
+
+/* ── Resize handle ── */
+.resize-handle {
+  width: 4px; background: var(--border); cursor: col-resize;
+  flex-shrink: 0; transition: background .15s;
+}
+.resize-handle:hover { background: var(--cyan); }
+
 /* ── Panel shared header ── */
 .panel-header {
   padding: 8px 16px; color: var(--muted); font-size: 10px;
@@ -80,7 +94,7 @@ body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidde
 
 /* ── Jobs panel ── */
 .jobs-panel {
-  width: 35%; min-width: 200px; display: flex; flex-direction: column;
+  flex: 1; min-width: 0; display: flex; flex-direction: column;
   border-right: 1px solid var(--border); overflow: hidden;
 }
 .filter-row { display: flex; gap: 4px; }
@@ -116,7 +130,7 @@ body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidde
 
 /* ── Log viewer ── */
 .log-panel {
-  width: 30%; min-width: 140px; display: flex; flex-direction: column;
+  flex: 1; min-width: 0; display: flex; flex-direction: column;
   border-right: 1px solid var(--border); overflow: hidden;
 }
 .log-body {
@@ -131,12 +145,21 @@ body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidde
 .log-dim   { color: var(--muted); }
 
 /* ── Agent viewer (CodeMirror) ── */
-.agent-viewer { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+.agent-viewer {
+  flex: 1; min-width: 0; display: flex; flex-direction: column;
+  border-right: 1px solid var(--border); overflow: hidden;
+}
 .agent-viewer-title { color: var(--text); font-size: 11px; letter-spacing: .5px; }
-.agent-viewer-body { flex: 1; overflow: hidden; }
-.agent-viewer-body .cm-editor { height: 100%; font-size: 12px; }
-.agent-viewer-body .cm-scroller { overflow: auto; }
-.agent-viewer-body .cm-gutters { background: #1a1f2a; border-right: 1px solid var(--border); }
+.agent-viewer-body {
+  flex: 1; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.agent-viewer-body > div {       /* react-codemirror outer wrapper */
+  flex: 1; overflow: hidden; display: flex; flex-direction: column;
+}
+.agent-viewer-body .cm-editor   { flex: 1; font-size: 12px; height: auto !important; }
+.agent-viewer-body .cm-scroller { flex: 1; overflow: auto; }
+.agent-viewer-body .cm-gutters  { background: #1a1f2a; border-right: 1px solid var(--border); }
 .agent-viewer-body .cm-activeLineGutter { background: transparent; }
 .close-btn {
   background: transparent; border: none; color: var(--muted); cursor: pointer;
@@ -145,7 +168,7 @@ body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidde
 .close-btn:hover { color: var(--red); }
 
 /* ── Sidebar ── */
-.sidebar { flex: 1; min-width: 200px; display: flex; flex-direction: column; overflow: hidden; }
+.sidebar { display: flex; flex-direction: column; overflow: hidden; }
 .sidebar-section { border-top: 1px solid var(--border); display: flex; flex-direction: column; max-height: 33%; }
 
 /* ── CORTEX chat ── */
