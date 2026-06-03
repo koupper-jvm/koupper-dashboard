@@ -1,0 +1,217 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:     #0d1117;
+  --panel:  #161b22;
+  --border: #30363d;
+  --hover:  #1f2937;
+  --sel:    #21262d;
+  --cyan:   #79c0ff;
+  --green:  #56d364;
+  --yellow: #e3b341;
+  --red:    #f85149;
+  --purple: #d2a8ff;
+  --teal:   #6ee7b7;
+  --text:   #c9d1d9;
+  --muted:  #8b949e;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  color-scheme: dark;
+}
+
+body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+
+#root { height: 100vh; display: flex; flex-direction: column; }
+
+/* ── App shell ── */
+.app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+/* ── Header ── */
+.header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 20px; border-bottom: 1px solid var(--border);
+  background: var(--panel); flex-shrink: 0;
+}
+.header-title { color: var(--cyan); font-size: 14px; letter-spacing: 2px; font-weight: bold; }
+.header-right { display: flex; align-items: center; gap: 16px; }
+.cortex-badge {
+  font-size: 11px; padding: 2px 10px; border-radius: 12px;
+  background: #1a0a2e; color: var(--purple); border: 1px solid #4a1a7e;
+}
+.conn-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.clock { color: var(--muted); font-size: 12px; }
+
+/* ── Metrics bar ── */
+.metrics-bar {
+  display: flex; align-items: center; gap: 24px; padding: 8px 20px;
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.metric { display: flex; flex-direction: column; align-items: center; min-width: 50px; }
+.metric-label { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
+.metric-value { font-size: 20px; font-weight: bold; margin-top: 1px; font-variant-numeric: tabular-nums; }
+.metrics-sep { width: 1px; height: 32px; background: var(--border); }
+
+/* ── Observability bar ── */
+.obs-bar {
+  display: flex; align-items: center; gap: 20px; padding: 6px 20px;
+  border-bottom: 1px solid var(--border); background: #0a0d12;
+  flex-shrink: 0; overflow-x: auto;
+}
+.obs-item { display: flex; flex-direction: column; align-items: center; min-width: 70px; }
+.obs-label { color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; margin-bottom: 2px; }
+.obs-value { font-size: 16px; font-weight: bold; font-variant-numeric: tabular-nums; }
+.obs-sub { font-size: 9px; color: var(--muted); margin-top: 1px; }
+.obs-sep { width: 1px; height: 28px; background: #1a2030; flex-shrink: 0; }
+.obs-spark-wrap { display: flex; flex-direction: column; align-items: flex-start; }
+
+/* ── Main layout ── */
+.main-layout {
+  display: flex; flex: 1; overflow: hidden;
+}
+
+/* ── Panel shared header ── */
+.panel-header {
+  padding: 8px 16px; color: var(--muted); font-size: 10px;
+  text-transform: uppercase; letter-spacing: 1px;
+  border-bottom: 1px solid var(--border); background: var(--bg);
+  display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+}
+.panel-count { color: var(--muted); }
+
+/* ── Jobs panel ── */
+.jobs-panel {
+  width: 35%; min-width: 200px; display: flex; flex-direction: column;
+  border-right: 1px solid var(--border); overflow: hidden;
+}
+.filter-row { display: flex; gap: 4px; }
+.filter-btn {
+  padding: 2px 10px; border-radius: 10px; border: 1px solid var(--border);
+  background: transparent; color: var(--muted); font-size: 11px;
+  cursor: pointer; font-family: inherit;
+}
+.filter-btn.active { border-color: var(--cyan); color: var(--cyan); background: #0a1929; }
+.jobs-scroll { flex: 1; overflow-y: auto; }
+.jobs-table { width: 100%; border-collapse: collapse; }
+.jobs-table th {
+  text-align: left; padding: 7px 16px; color: var(--muted);
+  font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
+  border-bottom: 1px solid var(--border); background: var(--bg);
+  position: sticky; top: 0; z-index: 1;
+}
+.jobs-table td {
+  padding: 7px 16px; border-bottom: 1px solid #0d1117;
+  cursor: pointer; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; max-width: 200px;
+}
+.jobs-table tr:hover td { background: var(--hover); }
+.jobs-table tr.selected td { background: var(--sel); }
+.job-id { max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+.result-cell { max-width: 180px; }
+.muted { color: var(--muted); }
+.empty { padding: 20px; color: var(--border); text-align: center; font-size: 12px; }
+.status-badge { font-size: 10px; font-weight: bold; font-variant-numeric: tabular-nums; }
+
+@keyframes pulse { 0%, 100% { opacity: 1 } 50% { opacity: .4 } }
+.pulse { animation: pulse 1.5s infinite; }
+
+/* ── Log viewer ── */
+.log-panel {
+  width: 30%; min-width: 140px; display: flex; flex-direction: column;
+  border-right: 1px solid var(--border); overflow: hidden;
+}
+.log-body {
+  flex: 1; overflow-y: auto; padding: 10px 14px;
+  font-size: 12px; line-height: 1.7; white-space: pre-wrap;
+  word-break: break-all; background: var(--panel); color: var(--text);
+}
+.log-line { display: block; }
+.log-error { color: var(--red); }
+.log-ok    { color: var(--green); }
+.log-info  { color: var(--purple); }
+.log-dim   { color: var(--muted); }
+
+/* ── Sidebar ── */
+.sidebar { flex: 1; min-width: 200px; display: flex; flex-direction: column; overflow: hidden; }
+.sidebar-section { border-top: 1px solid var(--border); display: flex; flex-direction: column; max-height: 33%; }
+
+/* ── CORTEX chat ── */
+.cortex-chat { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 180px; }
+.cortex-glow {
+  flex: 1; margin: 6px; border-radius: 8px;
+  position: relative; display: flex; flex-direction: column; overflow: hidden;
+}
+.cortex-glow::before {
+  content: ''; position: absolute; inset: -1px; border-radius: 9px;
+  background: linear-gradient(135deg, #7c3aed, #2563eb, #06b6d4, #7c3aed);
+  background-size: 300% 300%; animation: gradientShift 4s ease infinite; z-index: 0; opacity: .9;
+}
+.cortex-glow::after {
+  content: ''; position: absolute; inset: -4px; border-radius: 12px;
+  background: linear-gradient(135deg, #7c3aed, #2563eb, #06b6d4, #7c3aed);
+  background-size: 300% 300%; animation: gradientShift 4s ease infinite;
+  filter: blur(8px); z-index: -1; opacity: .5;
+}
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.cortex-inner {
+  position: relative; z-index: 1; background: #0d1117; border-radius: 7px;
+  flex: 1; display: flex; flex-direction: column; overflow: hidden;
+}
+.chat-log {
+  flex: 1; overflow-y: auto; padding: 10px 14px;
+  font-size: 12px; line-height: 1.6; white-space: pre-wrap; word-break: break-word;
+}
+.chat-msg { margin-bottom: 6px; line-height: 1.5; }
+.chat-user   { color: var(--cyan); }
+.chat-cortex { color: var(--text); }
+.chat-thinking { color: #4a3a6a; font-size: 10px; margin-bottom: 4px; }
+.chat-input-row {
+  display: flex; padding: 8px; border-top: 1px solid #1e1e3a; gap: 6px; background: #0d0f1a;
+}
+.chat-input {
+  flex: 1; background: #0d1117; border: 1px solid #2d2060; border-radius: 4px;
+  padding: 6px 10px; color: var(--text); font-family: inherit; font-size: 12px;
+  outline: none; transition: border-color .2s;
+}
+.chat-input:focus { border-color: #7c3aed; box-shadow: 0 0 8px rgba(124,58,237,.3); }
+.chat-send {
+  padding: 6px 12px; background: linear-gradient(135deg, #3b1d8a, #1d4ed8);
+  border: none; border-radius: 4px; color: #e0d7ff; cursor: pointer;
+  font-family: inherit; font-size: 11px; transition: opacity .2s;
+}
+.chat-send:hover { opacity: .85; }
+.chat-send:disabled { opacity: .5; cursor: default; }
+
+/* ── Agents ── */
+.agents-list { overflow-y: auto; flex: 1; }
+.agent-item {
+  padding: 8px 14px; border-bottom: 1px solid #0d1117;
+  display: flex; align-items: center; gap: 10px;
+}
+.agent-item:hover { background: var(--hover); }
+@keyframes dotPulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .6; transform: scale(.85); } }
+.agent-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; animation: dotPulse 2.5s ease-in-out infinite; }
+.agent-info { flex: 1; min-width: 0; cursor: pointer; }
+.agent-name { font-size: 12px; color: var(--text); }
+.agent-desc { font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.run-btn {
+  background: #1a2a1a; border: 1px solid #2ea043; color: var(--green);
+  font-size: 10px; padding: 2px 7px; border-radius: 4px;
+  cursor: pointer; flex-shrink: 0;
+}
+.run-btn:hover { background: #243524; }
+
+/* ── Schedules ── */
+.schedules-list { overflow-y: auto; flex: 1; }
+.schedule-item {
+  padding: 8px 14px; border-bottom: 1px solid #0d1117;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.schedule-item:hover { background: var(--hover); }
+.sched-badge { font-size: 9px; padding: 1px 5px; border-radius: 8px; }
+.sched-cron  { background: #0a2a1a; color: var(--green); }
+.sched-rate  { background: #1a1a0a; color: var(--yellow); }
+.sched-once  { background: #0a1a2a; color: var(--cyan); }
