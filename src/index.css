@@ -130,6 +130,20 @@ body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidde
 .log-info  { color: var(--purple); }
 .log-dim   { color: var(--muted); }
 
+/* ── Agent viewer (CodeMirror) ── */
+.agent-viewer { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+.agent-viewer-title { color: var(--text); font-size: 11px; letter-spacing: .5px; }
+.agent-viewer-body { flex: 1; overflow: hidden; }
+.agent-viewer-body .cm-editor { height: 100%; font-size: 12px; }
+.agent-viewer-body .cm-scroller { overflow: auto; }
+.agent-viewer-body .cm-gutters { background: #1a1f2a; border-right: 1px solid var(--border); }
+.agent-viewer-body .cm-activeLineGutter { background: transparent; }
+.close-btn {
+  background: transparent; border: none; color: var(--muted); cursor: pointer;
+  font-size: 13px; padding: 0 4px; line-height: 1;
+}
+.close-btn:hover { color: var(--red); }
+
 /* ── Sidebar ── */
 .sidebar { flex: 1; min-width: 200px; display: flex; flex-direction: column; overflow: hidden; }
 .sidebar-section { border-top: 1px solid var(--border); display: flex; flex-direction: column; max-height: 33%; }

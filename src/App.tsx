@@ -6,6 +6,7 @@ import { MetricsBar } from './components/MetricsBar'
 import { ObservabilityBar } from './components/ObservabilityBar'
 import { JobsPanel } from './components/JobsPanel'
 import { LogViewer } from './components/LogViewer'
+import { AgentViewer } from './components/AgentViewer'
 import { AgentsList } from './components/AgentsList'
 import { SchedulesList } from './components/SchedulesList'
 import { CortexChat } from './components/CortexChat'
@@ -21,8 +22,9 @@ const EMPTY_OBS = {
 
 export default function App() {
   const { snapshot, status } = useSSE()
-  const [selectedJob, setSelectedJob] = useState<{ queue: string; id: string } | null>(null)
-  const [logTitle, setLogTitle] = useState('Log')
+  const [selectedJob, setSelectedJob]       = useState<{ queue: string; id: string } | null>(null)
+  const [agentView, setAgentView]           = useState<{ name: string; content: string } | null>(null)
+  const [logTitle, setLogTitle]             = useState('Log')
   const log = useLogPoller(selectedJob)
 
   const metrics   = snapshot?.metrics      ?? EMPTY_METRICS
@@ -32,6 +34,7 @@ export default function App() {
   const schedules = snapshot?.schedules    ?? []
 
   function handleJobSelect(job: { queue: string; id: string }) {
+    setAgentView(null)
     setSelectedJob(job)
     setLogTitle(job.id)
   }
@@ -47,15 +50,20 @@ export default function App() {
   }
 
   function handleViewAgent(name: string) {
-    setLogTitle(`${name}.kts`)
     fetch(`/api/agent/${name}`)
       .then(r => r.json())
       .then(data => {
         if (data.content) {
           setSelectedJob(null)
+          setAgentView({ name, content: data.content })
         }
       })
       .catch(() => {})
+  }
+
+  function handleCloseAgentView() {
+    setAgentView(null)
+    setLogTitle('Log')
   }
 
   return (
@@ -78,7 +86,14 @@ export default function App() {
           onSelect={handleJobSelect}
         />
 
-        <LogViewer log={log} title={logTitle} />
+        {agentView
+          ? <AgentViewer
+              name={agentView.name}
+              content={agentView.content}
+              onClose={handleCloseAgentView}
+            />
+          : <LogViewer log={log} title={logTitle} />
+        }
 
         <div className="sidebar">
           <CortexChat onJobSelect={handleJobSelect} />
