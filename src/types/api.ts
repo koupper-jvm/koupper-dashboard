@@ -19,9 +19,33 @@ export interface ObservabilityData {
   sparkline: [number, number][]
 }
 
+export interface AgentEnvVar {
+  name: string
+  required: boolean
+  description: string
+}
+
+export interface AgentMetrics {
+  totalRuns: number
+  successRuns: number
+  failedRuns: number
+  successRate: string
+  lastRun: string
+}
+
 export interface Agent {
   name: string
   description: string
+  role?: string
+  tags?: string[]
+  persistent?: boolean
+  providers?: string[]
+  triggers?: string[]
+  envVars?: AgentEnvVar[]
+  setup?: string[]
+  requires?: string[]
+  running?: boolean
+  metrics?: AgentMetrics
 }
 
 export interface Schedule {

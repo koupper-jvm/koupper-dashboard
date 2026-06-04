@@ -9,9 +9,40 @@ interface Props {
   onJobSelect: (job: { queue: string; id: string }) => void
 }
 
+function cleanLogLines(lines: string[]): string {
+  return lines
+    .map(l => l.replace(/^\[\d{2}:\d{2}:\d{2}\]\s*/, '').trimEnd())
+    .filter(t => {
+      const s = t.trimStart()
+      return s.length > 0 &&
+        !s.startsWith('▶') &&
+        !s.startsWith('━') &&
+        !s.startsWith('◈') &&
+        !s.startsWith('CORTEX_TOOL:') &&
+        !s.startsWith('Built-in') &&
+        !s.startsWith('JOB_') &&
+        !s.startsWith('[DEBUG]') &&
+        !s.startsWith('[DONE]') &&
+        !s.startsWith('[FAILED]') &&
+        !s.startsWith('[Error:') &&
+        !s.startsWith('→') &&        // tool calls
+        !s.startsWith('↺') &&        // retry
+        !s.startsWith('↳') &&        // tool results
+        !s.startsWith('⏳') &&
+        !s.startsWith('External MCP') &&
+        !s.startsWith('CORTEX ONLINE') &&
+        !s.startsWith('Providers:') &&
+        !s.startsWith('Tools:') &&
+        !s.startsWith('Press Enter')
+    })
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
 export function CortexChat({ onJobSelect }: Props) {
   const [messages, setMessages] = useState<Message[]>([])
-  const [input, setInput] = useState('')
+  const [input, setInput]       = useState('')
   const [thinking, setThinking] = useState(false)
   const chatRef = useRef<HTMLDivElement>(null)
 
@@ -21,34 +52,28 @@ export function CortexChat({ onJobSelect }: Props) {
     }, 50)
   }
 
+  function newChat() {
+    setMessages([])
+    setThinking(false)
+    setInput('')
+  }
+
   async function pollResponse(linesBeforeSend: number) {
-    let attempts = 0
-    let lastSnapshot = ''
+    let attempts   = 0
+    let lastSnap   = ''
     let stableCount = 0
 
     const poll = setInterval(async () => {
-      if (++attempts > 90) { clearInterval(poll); setThinking(false); return }
+      if (++attempts > 120) { clearInterval(poll); setThinking(false); return }
       try {
-        const res = await fetch('/api/logs/cortex-session?queue=cortex')
+        const res  = await fetch('/api/logs/cortex-session?queue=cortex')
         const data = await res.json()
         if (!data.lines || data.lines.length <= linesBeforeSend) return
 
-        const response = (data.lines as string[])
-          .slice(linesBeforeSend)
-          .map((l: string) => l.replace(/^\[\d{2}:\d{2}:\d{2}\]\s*/, '').trim())
-          .filter((t: string) => t &&
-            !t.startsWith('▶') && !t.startsWith('CORTEX_TOOL:') &&
-            !t.startsWith('━') && !t.startsWith('↳') &&
-            !t.startsWith('⏳') && !t.startsWith('✓') && !t.startsWith('✗') &&
-            !t.startsWith('[') && !t.startsWith('Built-in') &&
-            !t.startsWith('JOB_') && !t.startsWith('[DEBUG]') &&
-            !t.startsWith('[DONE]') && !t.startsWith('[FAILED]'))
-          .join(' ')
-          .trim()
-
+        const response = cleanLogLines((data.lines as string[]).slice(linesBeforeSend))
         if (!response) return
 
-        if (response === lastSnapshot) {
+        if (response === lastSnap) {
           if (++stableCount >= 2) {
             clearInterval(poll)
             setThinking(false)
@@ -56,7 +81,7 @@ export function CortexChat({ onJobSelect }: Props) {
             scrollDown()
           }
         } else {
-          lastSnapshot = response
+          lastSnap    = response
           stableCount = 0
         }
       } catch {}
@@ -71,11 +96,11 @@ export function CortexChat({ onJobSelect }: Props) {
     scrollDown()
 
     try {
-      const logRes = await fetch('/api/logs/cortex-session?queue=cortex')
+      const logRes  = await fetch('/api/logs/cortex-session?queue=cortex')
       const logData = await logRes.json()
       const linesBefore = logData.lines?.length ?? 0
 
-      const res = await fetch('/api/cortex', {
+      const res  = await fetch('/api/cortex', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: msg }),
@@ -93,16 +118,21 @@ export function CortexChat({ onJobSelect }: Props) {
     <div className="cortex-chat">
       <div className="cortex-glow">
         <div className="cortex-inner">
+          <div className="chat-header-row">
+            <span className="chat-label">CORTEX</span>
+            <button className="new-chat-btn" onClick={newChat} title="New conversation">＋ New</button>
+          </div>
           <div className="chat-log" ref={chatRef}>
             {messages.length === 0 && (
-              <div className="empty" style={{ color: '#4a3a6a' }}>Ask CORTEX anything…</div>
+              <div className="empty" style={{ color: '#4a3a6a', fontSize: 11 }}>Ask CORTEX anything…</div>
             )}
             {messages.map((m, i) => (
-              <div key={i} className={`chat-msg chat-${m.role}`}>{m.text}</div>
+              <div key={i} className={`chat-msg chat-${m.role}`}>
+                <span className="chat-role-tag">{m.role === 'user' ? 'YOU' : 'CORTEX'}</span>
+                <span className="chat-msg-text">{m.text}</span>
+              </div>
             ))}
-            {thinking && (
-              <div className="chat-thinking">→ pensando…</div>
-            )}
+            {thinking && <div className="chat-thinking">◈ procesando…</div>}
           </div>
           <div className="chat-input-row">
             <input
@@ -112,9 +142,7 @@ export function CortexChat({ onJobSelect }: Props) {
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && send()}
             />
-            <button className="chat-send" onClick={send} disabled={thinking}>
-              ⚡ Send
-            </button>
+            <button className="chat-send" onClick={send} disabled={thinking}>⚡</button>
           </div>
         </div>
       </div>

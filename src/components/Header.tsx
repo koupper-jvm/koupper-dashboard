@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ConnectionStatus } from '../hooks/useSSE'
+import AuroraRing from './AuroraRing'
 
 interface Props {
   status: ConnectionStatus
@@ -25,11 +26,16 @@ export function Header({ status, cortexActive }: Props) {
 
   return (
     <header className="header">
-      <h1 className="header-title">◈ &nbsp;IGLY CORTEX — SWARM MONITOR</h1>
+      <div className="header-brand">
+        <AuroraRing size={44} style={{ flexShrink: 0 }} />
+        <div className="header-brand-text">
+          <span className="header-title-pixel">CORTEX</span>
+          <span className="header-subtitle">IGLY SWARM MONITOR</span>
+        </div>
+      </div>
       <div className="header-right">
-        {cortexActive && <span className="cortex-badge">● CORTEX ONLINE</span>}
-        <span
-          className="conn-dot"
+        {cortexActive && <span className="cortex-badge">● ONLINE</span>}
+        <span className="conn-dot"
           style={{ background: status === 'connected' ? 'var(--green)' : 'var(--red)' }}
         />
         <span className="clock">{clock}</span>
