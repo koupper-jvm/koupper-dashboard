@@ -140,31 +140,40 @@ export function CortexChat({ onJobSelect }: Props) {
   }
 
   async function pollResponse(linesBeforeSend: number) {
-    let attempts   = 0
-    let lastSnap   = ''
+    let attempts    = 0
+    let lastSnap    = ''
     let stableCount = 0
+    let lastRawLen  = linesBeforeSend  // track raw log length to detect ongoing activity
 
     const poll = setInterval(async () => {
-      if (++attempts > 120) { clearInterval(poll); setThinking(false); return }
+      if (++attempts > 150) { clearInterval(poll); setThinking(false); return }
       try {
         const res  = await fetch('/api/logs/cortex-session?queue=cortex')
         const data = await res.json()
-        if (!data.lines || data.lines.length <= linesBeforeSend) return
+        if (!data.lines) return
+        const rawLen = data.lines.length
+        if (rawLen <= linesBeforeSend) return
 
         const response = cleanLogLines((data.lines as string[]).slice(linesBeforeSend))
-        if (!response) return
 
-        if (response === lastSnap) {
-          if (++stableCount >= 2) {
-            clearInterval(poll)
-            setThinking(false)
-            setMessages(prev => [...prev, { role: 'cortex', text: response }])
-            scrollDown()
+        if (response && response === lastSnap) {
+          // Only commit if the raw log hasn't grown either (tools might still be running)
+          if (rawLen === lastRawLen) {
+            if (++stableCount >= 3) {
+              clearInterval(poll)
+              setThinking(false)
+              setMessages(prev => [...prev, { role: 'cortex', text: response }])
+              scrollDown()
+            }
+          } else {
+            // Raw log grew even though clean text looks the same — tools still running, reset
+            stableCount = 0
           }
         } else {
           lastSnap    = response
           stableCount = 0
         }
+        lastRawLen = rawLen
       } catch {}
     }, 2000)
   }
