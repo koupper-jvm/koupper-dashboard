@@ -27,8 +27,8 @@ export function Header({ status, cortexActive }: Props) {
   return (
     <header className="header">
       <div className="header-brand">
-        <AuroraRing size={44} style={{ flexShrink: 0 }} />
-        <div className="header-brand-text">
+        <AuroraRing size={72} style={{ flexShrink: 0 }} />
+        <div className="header-brand-text" style={{ display:'flex', flexDirection:'column', justifyContent:'center', gap:4 }}>
           <span className="header-title-pixel">CORTEX</span>
           <span className="header-subtitle">IGLY SWARM MONITOR</span>
         </div>

@@ -1,0 +1,2 @@
+{"type":"trace","span":"script.execution","attributes":{"exportId":"/tmp/test-simple.kts::setup","kind":"KTS","scriptPath":"/tmp/test-simple.kts","status":"ok"},"durationMs":0,"timestamp":"2026-06-04T01:51:13.872188384Z"}
+{"type":"metric","name":"script.execution.durationMs","value":0.0,"tags":{"kind":"KTS","status":"ok"},"timestamp":"2026-06-04T01:51:13.885424872Z"}

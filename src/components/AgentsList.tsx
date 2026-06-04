@@ -18,26 +18,81 @@ interface Props {
   selectedAgent: string | null
   onView: (name: string) => void
   onRun: (name: string) => void
+  query?: string
 }
 
-export function AgentsList({ agents, selectedAgent, onView, onRun }: Props) {
+function scoreAgent(agent: Agent, query: string): number {
+  if (!query) return 1
+  const q = query.toLowerCase().trim()
+  const words = q.split(/\s+/)
+  const name = (agent.name ?? '').toLowerCase().replace('.kts', '')
+  const desc = (agent.description ?? '').toLowerCase()
+  const role = (agent.role ?? '').toLowerCase()
+  const tags = (agent.tags ?? []).map(t => t.toLowerCase()).join(' ')
+  const combined = `${name} ${desc} ${role} ${tags}`
+
+  // Exact match in name gets highest score
+  if (name.includes(q)) return 100
+  // Single word: keyword match
+  if (words.length <= 2) {
+    let score = 0
+    for (const w of words) {
+      if (name.includes(w)) score += 40
+      else if (role.includes(w)) score += 20
+      else if (tags.includes(w)) score += 15
+      else if (desc.includes(w)) score += 10
+      else if (combined.includes(w)) score += 5
+    }
+    return score
+  }
+  // Multi-word: fuzzy keyword matching
+  let score = 0
+  let matched = 0
+  for (const w of words) {
+    if (w.length < 2) continue
+    if (combined.includes(w)) {
+      matched++
+      if (name.includes(w)) score += 30
+      else if (role.includes(w)) score += 15
+      else if (tags.includes(w)) score += 12
+      else score += 8
+    }
+  }
+  // Bonus for matching most words
+  if (matched === words.length) score += 20
+  return score
+}
+
+export function AgentsList({ agents, selectedAgent, onView, onRun, query = '' }: Props) {
   const [showAll, setShowAll] = useState(false)
 
   const filtered = agents.filter(a => {
     const base = a.name.replace('.kts', '')
     if (SKIP_NAMES.has(base)) return false
-    // Hide agents with no description and no role (likely auto-generated junk)
     if (!a.description && !a.role && (a.tags ?? []).length === 0) return showAll
     return true
   })
+
+  // Apply search query
+  const searched = query.trim()
+    ? filtered
+        .map(a => ({ agent: a, score: scoreAgent(a, query) }))
+        .filter(({ score }) => score > 0)
+        .sort((a, b) => b.score - a.score)
+        .map(({ agent }) => agent)
+    : filtered
 
   if (agents.length === 0) {
     return <div className="empty">No agents installed</div>
   }
 
+  if (query.trim() && searched.length === 0) {
+    return <div className="empty">No agents match "{query}"</div>
+  }
+
   return (
     <div className="agents-list">
-      {filtered.map(agent => {
+      {searched.map(agent => {
         const rate     = parseFloat(agent.metrics?.successRate ?? '100')
         const rateColor = rate >= 80 ? '#56d364' : rate >= 50 ? '#e3b341' : '#f85149'
         const isSelected = selectedAgent === agent.name
@@ -88,7 +143,7 @@ export function AgentsList({ agents, selectedAgent, onView, onRun }: Props) {
       })}
 
       {/* Toggle to show all including scratch agents */}
-      {agents.length > filtered.length && (
+      {!query.trim() && agents.length > filtered.length && (
         <button className="show-all-btn" onClick={() => setShowAll(s => !s)}>
           {showAll ? '▲ Less' : `▼ +${agents.length - filtered.length} more`}
         </button>

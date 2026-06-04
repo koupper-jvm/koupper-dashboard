@@ -28,7 +28,15 @@ function applyFilter(jobs: Job[], filter: Filter): Job[] {
 
 export function JobsPanel({ jobs, selectedJob, onSelect }: Props) {
   const [filter, setFilter] = useState<Filter>('all')
-  const visible = applyFilter(jobs, filter)
+  const [search, setSearch] = useState('')
+
+  const filtered = applyFilter(jobs, filter)
+  const visible = search.trim()
+    ? filtered.filter(j =>
+        j.id.toLowerCase().includes(search.toLowerCase()) ||
+        j.queue.toLowerCase().includes(search.toLowerCase())
+      )
+    : filtered
 
   return (
     <div className="jobs-panel">
@@ -45,6 +53,18 @@ export function JobsPanel({ jobs, selectedJob, onSelect }: Props) {
             </button>
           ))}
         </div>
+      </div>
+      <div className="jobs-search-row">
+        <input
+          className="jobs-search-input"
+          type="text"
+          placeholder="Search by ID or queue…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+        {search && (
+          <button className="jobs-search-clear" onClick={() => setSearch('')}>×</button>
+        )}
       </div>
       <div className="jobs-scroll">
         <table className="jobs-table">
