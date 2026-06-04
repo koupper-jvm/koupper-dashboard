@@ -31,34 +31,42 @@ function saveSessions(sessions: ChatSession[]) {
 }
 
 function cleanLogLines(lines: string[]): string {
-  return lines
-    .map(l => l.replace(/^\[\d{2}:\d{2}:\d{2}\]\s*/, '').trimEnd())
-    .filter(t => {
-      const s = t.trimStart()
-      return s.length > 0 &&
-        !s.startsWith('▶') &&
-        !s.startsWith('━') &&
-        !s.startsWith('◈') &&
-        !s.startsWith('CORTEX_TOOL:') &&
-        !s.startsWith('Built-in') &&
-        !s.startsWith('JOB_') &&
-        !s.startsWith('[DEBUG]') &&
-        !s.startsWith('[DONE]') &&
-        !s.startsWith('[FAILED]') &&
-        !s.startsWith('[Error:') &&
-        !s.startsWith('→') &&
-        !s.startsWith('↺') &&
-        !s.startsWith('↳') &&
-        !s.startsWith('⏳') &&
-        !s.startsWith('External MCP') &&
-        !s.startsWith('CORTEX ONLINE') &&
-        !s.startsWith('Providers:') &&
-        !s.startsWith('Tools:') &&
-        !s.startsWith('Press Enter')
-    })
-    .join('\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim()
+  const stripped = lines.map(l => l.replace(/^\[\d{2}:\d{2}:\d{2}\]\s*/, '').trimEnd())
+
+  let inToolResult = false
+  const result: string[] = []
+
+  for (const line of stripped) {
+    const s = line.trimStart()
+
+    // Empty line ends any tool result block
+    if (s.length === 0) {
+      inToolResult = false
+      continue
+    }
+
+    // Tool result line — skip it and mark state
+    if (s.startsWith('↳')) { inToolResult = true; continue }
+
+    // Skip continuation lines of multi-line tool results (JSON, etc.)
+    if (inToolResult) continue
+
+    // Skip internal log markers
+    if (
+      s.startsWith('▶') || s.startsWith('━') || s.startsWith('◈') ||
+      s.startsWith('→') || s.startsWith('↺') || s.startsWith('⏳') ||
+      s.startsWith('CORTEX_TOOL:') || s.startsWith('Built-in') ||
+      s.startsWith('JOB_') || s.startsWith('[DEBUG]') ||
+      s.startsWith('[DONE]') || s.startsWith('[FAILED]') ||
+      s.startsWith('[Error:') || s.startsWith('External MCP') ||
+      s.startsWith('CORTEX ONLINE') || s.startsWith('Providers:') ||
+      s.startsWith('Tools:') || s.startsWith('Press Enter')
+    ) continue
+
+    result.push(line)
+  }
+
+  return result.join('\n').replace(/\n{3,}/g, '\n\n').trim()
 }
 
 export function CortexChat({ onJobSelect }: Props) {
