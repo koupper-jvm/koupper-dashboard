@@ -14,14 +14,15 @@ export const VoiceWave = forwardRef<VoiceHandle, Props>(function VoiceWave({ gre
   const [bars, setBars]         = useState<number[]>(Array(BAR_COUNT).fill(3))
   const [playing, setPlaying]   = useState(false)
   const [ready, setReady]       = useState(false)
-  // Always start needing a click — browser blocks AudioContext without user gesture
   const [unlocked, setUnlocked] = useState(false)
 
-  const analyserRef = useRef<AnalyserNode | null>(null)
-  const animRef     = useRef<number>(0)
-  const ctxRef      = useRef<AudioContext | null>(null)
-  const audioRef    = useRef<HTMLAudioElement | null>(null)
-  const abortRef    = useRef<AbortController | null>(null)
+  const analyserRef    = useRef<AnalyserNode | null>(null)
+  const animRef        = useRef<number>(0)
+  const ctxRef         = useRef<AudioContext | null>(null)
+  const audioRef       = useRef<HTMLAudioElement | null>(null)
+  const abortRef       = useRef<AbortController | null>(null)
+  const pendingRef     = useRef<string | null>(null)  // text to speak once unlocked
+  const unlockingRef   = useRef(false)                // prevent double unlock
 
   useEffect(() => {
     fetch('/api/voice/status')
@@ -49,9 +50,7 @@ export const VoiceWave = forwardRef<VoiceHandle, Props>(function VoiceWave({ gre
     animRef.current = requestAnimationFrame(animate)
   }
 
-  const speak = useCallback(async (text: string) => {
-    if (!ready || !unlocked) return
-
+  async function playText(ctx: AudioContext, text: string) {
     abortRef.current?.abort()
     abortRef.current = new AbortController()
 
@@ -70,7 +69,6 @@ export const VoiceWave = forwardRef<VoiceHandle, Props>(function VoiceWave({ gre
       const { url, error } = await res.json()
       if (error || !url) return
 
-      const ctx = ctxRef.current!
       const audio = new Audio(url)
       audio.crossOrigin = 'anonymous'
       audioRef.current = audio
@@ -93,56 +91,56 @@ export const VoiceWave = forwardRef<VoiceHandle, Props>(function VoiceWave({ gre
         console.warn('[VoiceWave]', e)
       stopAnim()
     }
+  }
+
+  const speak = useCallback((text: string) => {
+    if (!ready) return
+    if (!unlocked || !ctxRef.current) {
+      // Queue for when AudioContext is activated
+      pendingRef.current = text
+      return
+    }
+    playText(ctxRef.current, text)
   }, [ready, unlocked])
 
-  // Expose speak() to parent so chat responses can trigger voice
+  // Expose speak() to parent (CortexChat uses this for responses)
   useImperativeHandle(ref, () => ({ speak }), [speak])
 
-  async function activate() {
-    // Must be called directly from a click event so AudioContext is allowed
-    const ctx = new AudioContext()
-    await ctx.resume()
-    ctxRef.current = ctx
-    setUnlocked(true)
-    if (greeting) {
-      // speak() checks unlocked, but we just set it — call directly here
-      abortRef.current?.abort()
-      abortRef.current = new AbortController()
-      try {
-        const res = await fetch('/api/voice', {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: greeting,
-          signal: abortRef.current.signal,
-        })
-        if (!res.ok) return
-        const { url, error } = await res.json()
-        if (error || !url) return
+  // Listen for first user interaction ANYWHERE on the page
+  useEffect(() => {
+    if (unlocked || !ready) return
 
-        const audio = new Audio(url)
-        audio.crossOrigin = 'anonymous'
-        audioRef.current = audio
+    function unlock() {
+      if (unlockingRef.current) return
+      unlockingRef.current = true
 
-        const source   = ctx.createMediaElementSource(audio)
-        const analyser = ctx.createAnalyser()
-        analyser.fftSize = 128
-        analyser.smoothingTimeConstant = 0.75
-        source.connect(analyser)
-        analyser.connect(ctx.destination)
-        analyserRef.current = analyser
-
-        audio.onplay  = () => { setPlaying(true); animate() }
-        audio.onended = stopAnim
-        audio.onerror = stopAnim
-
-        await audio.play()
-      } catch (e: unknown) {
-        if ((e as { name?: string })?.name !== 'AbortError')
-          console.warn('[VoiceWave] activate:', e)
-        stopAnim()
-      }
+      const ctx = new AudioContext()
+      ctxRef.current = ctx
+      ctx.resume().then(() => {
+        setUnlocked(true)
+        // Play greeting (or pending chat response if one arrived first)
+        const text = pendingRef.current ?? greeting
+        pendingRef.current = null
+        if (text) playText(ctx, text)
+      })
     }
-  }
+
+    document.addEventListener('click',   unlock, { once: true })
+    document.addEventListener('keydown', unlock, { once: true })
+    return () => {
+      document.removeEventListener('click',   unlock)
+      document.removeEventListener('keydown', unlock)
+    }
+  }, [unlocked, ready, greeting])
+
+  // Play pending text when unlocked state propagates
+  useEffect(() => {
+    if (unlocked && ctxRef.current && pendingRef.current) {
+      const text = pendingRef.current
+      pendingRef.current = null
+      playText(ctxRef.current, text)
+    }
+  }, [unlocked])
 
   useEffect(() => {
     return () => {
@@ -157,10 +155,9 @@ export const VoiceWave = forwardRef<VoiceHandle, Props>(function VoiceWave({ gre
   return (
     <div
       className={`voice-wave${playing ? ' playing' : ''}${!unlocked ? ' needs-click' : ''}`}
-      title={unlocked ? 'CORTEX Voice — click to replay' : 'Click to activate CORTEX voice'}
+      title={unlocked ? 'CORTEX Voice — click to replay greeting' : 'Voice activates on first interaction'}
       onClick={() => {
-        if (!unlocked) activate()
-        else if (greeting) speak(greeting)
+        if (unlocked && ctxRef.current && greeting) playText(ctxRef.current, greeting)
       }}
     >
       {!unlocked && <span className="voice-wave-tap">▶ TAP</span>}
