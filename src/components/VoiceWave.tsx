@@ -165,7 +165,7 @@ export const VoiceWave = forwardRef<VoiceHandle, Props>(function VoiceWave({ gre
         }
       }}
     >
-      {!unlocked && <span className="voice-wave-tap">▶ TAP</span>}
+      {/* No tap indicator — voice activates on first interaction anywhere */}
       {bars.map((h, i) => (
         <div key={i} className="voice-bar" style={{ height: `${h}px` }} />
       ))}

@@ -61,7 +61,8 @@ function cleanLogLines(lines: string[]): string {
       s.startsWith('[DONE]') || s.startsWith('[FAILED]') ||
       s.startsWith('[Error:') || s.startsWith('External MCP') ||
       s.startsWith('CORTEX ONLINE') || s.startsWith('Providers:') ||
-      s.startsWith('Tools:') || s.startsWith('Press Enter')
+      s.startsWith('Tools:') || s.startsWith('Press Enter') ||
+      /^\[\d{2}:\d{2}:\d{2}\]/.test(s)
     ) continue
 
     result.push(line)
