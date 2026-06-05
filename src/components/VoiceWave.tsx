@@ -7,16 +7,16 @@ interface Props {
 }
 
 export function VoiceWave({ greeting }: Props) {
-  const [bars, setBars]         = useState<number[]>(Array(BAR_COUNT).fill(3))
-  const [playing, setPlaying]   = useState(false)
-  const [ready, setReady]       = useState(false)
+  const [bars, setBars]             = useState<number[]>(Array(BAR_COUNT).fill(3))
+  const [playing, setPlaying]       = useState(false)
+  const [ready, setReady]           = useState(false)
   const [needsClick, setNeedsClick] = useState(false)
 
-  const analyserRef  = useRef<AnalyserNode | null>(null)
-  const animRef      = useRef<number>(0)
-  const ctxRef       = useRef<AudioContext | null>(null)
-  const audioRef     = useRef<HTMLAudioElement | null>(null)
-  const speakingRef  = useRef(false)
+  const analyserRef = useRef<AnalyserNode | null>(null)
+  const animRef     = useRef<number>(0)
+  const ctxRef      = useRef<AudioContext | null>(null)
+  const audioRef    = useRef<HTMLAudioElement | null>(null)
+  const abortRef    = useRef<AbortController | null>(null)
 
   useEffect(() => {
     fetch('/api/voice/status')
@@ -45,20 +45,27 @@ export function VoiceWave({ greeting }: Props) {
   }
 
   const speak = useCallback(async (text: string) => {
-    if (!ready || speakingRef.current) return
-    speakingRef.current = true
+    if (!ready) return
+
+    // Cancel any in-flight synthesis request
+    abortRef.current?.abort()
+    abortRef.current = new AbortController()
+
+    // Stop current playback immediately
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
+    cancelAnimationFrame(animRef.current)
+    setPlaying(false)
+
     try {
       const res = await fetch('/api/voice', {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
         body: text,
+        signal: abortRef.current.signal,
       })
       if (!res.ok) return
       const { url, error } = await res.json()
       if (error || !url) return
-
-      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
-      cancelAnimationFrame(animRef.current)
 
       if (!ctxRef.current || ctxRef.current.state === 'closed') {
         ctxRef.current = new AudioContext()
@@ -79,13 +86,13 @@ export function VoiceWave({ greeting }: Props) {
       analyserRef.current = analyser
 
       audio.onplay  = () => { setPlaying(true); setNeedsClick(false); animate() }
-      audio.onended = () => { stopAnim(); speakingRef.current = false }
-      audio.onerror = () => { stopAnim(); speakingRef.current = false }
+      audio.onended = stopAnim
+      audio.onerror = stopAnim
 
       await audio.play()
     } catch (e: unknown) {
-      speakingRef.current = false
       const name = (e as { name?: string })?.name
+      if (name === 'AbortError') return
       if (name === 'NotAllowedError') {
         setNeedsClick(true)
       } else {
@@ -95,7 +102,7 @@ export function VoiceWave({ greeting }: Props) {
     }
   }, [ready])
 
-  // Try auto-play on mount once voice is ready
+  // Try auto-play on mount; browser will throw NotAllowedError if blocked
   useEffect(() => {
     if (ready && greeting) {
       const t = setTimeout(() => speak(greeting), 600)
@@ -105,6 +112,7 @@ export function VoiceWave({ greeting }: Props) {
 
   useEffect(() => {
     return () => {
+      abortRef.current?.abort()
       cancelAnimationFrame(animRef.current)
       ctxRef.current?.close()
     }
@@ -118,9 +126,7 @@ export function VoiceWave({ greeting }: Props) {
       title={needsClick ? 'Click to activate voice' : 'CORTEX Voice — click to replay'}
       onClick={() => greeting && speak(greeting)}
     >
-      {needsClick && (
-        <span className="voice-wave-tap">▶</span>
-      )}
+      {needsClick && <span className="voice-wave-tap">▶</span>}
       {bars.map((h, i) => (
         <div key={i} className="voice-bar" style={{ height: `${h}px` }} />
       ))}
