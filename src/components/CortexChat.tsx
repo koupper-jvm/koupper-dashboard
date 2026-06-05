@@ -14,6 +14,7 @@ interface ChatSession {
 
 interface Props {
   onJobSelect: (job: { queue: string; id: string }) => void
+  onSpeak?: (text: string) => void
 }
 
 const SESSIONS_KEY = 'cortex-chat-sessions'
@@ -69,7 +70,7 @@ function cleanLogLines(lines: string[]): string {
   return result.join('\n').replace(/\n{3,}/g, '\n\n').trim()
 }
 
-export function CortexChat({ onJobSelect }: Props) {
+export function CortexChat({ onJobSelect, onSpeak }: Props) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput]       = useState('')
   const [thinking, setThinking] = useState(false)
@@ -164,6 +165,11 @@ export function CortexChat({ onJobSelect }: Props) {
               setThinking(false)
               setMessages(prev => [...prev, { role: 'cortex', text: response }])
               scrollDown()
+              // Speak response if voice is active (truncate to ~400 chars for speed)
+              if (onSpeak) {
+                const voiceText = response.replace(/```[\s\S]*?```/g, '').slice(0, 400).trim()
+                if (voiceText) onSpeak(voiceText)
+              }
             }
           } else {
             // Raw log grew even though clean text looks the same — tools still running, reset

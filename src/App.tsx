@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useSSE } from './hooks/useSSE'
 import { useLogPoller } from './hooks/useLogPoller'
 import { useResize } from './hooks/useResize'
 import { useVerticalResize } from './hooks/useVerticalResize'
 import { Header } from './components/Header'
+import type { VoiceHandle } from './components/VoiceWave'
 import { MetricsBar } from './components/MetricsBar'
 import { ObservabilityBar } from './components/ObservabilityBar'
 import { JobsPanel } from './components/JobsPanel'
@@ -27,6 +28,7 @@ type ColKey = 'left' | 'mid' | 'right'
 
 export default function App() {
   const { snapshot, status } = useSSE()
+  const voiceRef = useRef<VoiceHandle>(null)
   const { leftW, midW, startDrag } = useResize(350, 420)
   const { chatPct, startVDrag, containerRef } = useVerticalResize(48)
 
@@ -98,7 +100,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <Header status={status} cortexActive={snapshot?.cortexActive ?? false} />
+      <Header status={status} cortexActive={snapshot?.cortexActive ?? false} voiceRef={voiceRef} />
       <MetricsBar metrics={metrics} agentCount={agents.length} scheduleCount={schedules.length} />
       <ObservabilityBar obs={obs} />
 
@@ -167,7 +169,7 @@ export default function App() {
 
                   {/* Chat — resizable height */}
                   <div style={{ height: `${chatPct}%`, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 160 }}>
-                    <CortexChat onJobSelect={handleJobSelect} />
+                    <CortexChat onJobSelect={handleJobSelect} onSpeak={t => voiceRef.current?.speak(t)} />
                   </div>
 
                   {/* Vertical resize handle */}

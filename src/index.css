@@ -41,12 +41,14 @@
 .voice-wave.needs-click { opacity: 1; }
 .voice-wave.needs-click .voice-bar { opacity: 0.3; }
 .voice-wave-tap {
-  position: absolute;
-  font-size: 11px;
+  font-size: 10px;
+  font-family: 'Courier New', monospace;
   color: #a78bfa;
+  letter-spacing: 1px;
   animation: voice-tap-pulse 1.2s ease-in-out infinite;
   pointer-events: none;
-  margin-right: 4px;
+  white-space: nowrap;
+  margin-right: 6px;
 }
 @keyframes voice-tap-pulse {
   0%, 100% { opacity: .4; transform: scale(1); }

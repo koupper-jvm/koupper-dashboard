@@ -1,12 +1,16 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react'
 
 const BAR_COUNT = 38
+
+export interface VoiceHandle {
+  speak: (text: string) => void
+}
 
 interface Props {
   greeting?: string
 }
 
-export function VoiceWave({ greeting }: Props) {
+export const VoiceWave = forwardRef<VoiceHandle, Props>(function VoiceWave({ greeting }, ref) {
   const [bars, setBars]             = useState<number[]>(Array(BAR_COUNT).fill(3))
   const [playing, setPlaying]       = useState(false)
   const [ready, setReady]           = useState(false)
@@ -47,11 +51,9 @@ export function VoiceWave({ greeting }: Props) {
   const speak = useCallback(async (text: string) => {
     if (!ready) return
 
-    // Cancel any in-flight synthesis request
     abortRef.current?.abort()
     abortRef.current = new AbortController()
 
-    // Stop current playback immediately
     if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
     cancelAnimationFrame(animRef.current)
     setPlaying(false)
@@ -75,7 +77,6 @@ export function VoiceWave({ greeting }: Props) {
         try { await ctx.resume() } catch (_) {}
       }
       if (ctx.state !== 'running') {
-        // AudioContext needs a user gesture to activate — show tap indicator
         setNeedsClick(true)
         return
       }
@@ -100,16 +101,16 @@ export function VoiceWave({ greeting }: Props) {
     } catch (e: unknown) {
       const name = (e as { name?: string })?.name
       if (name === 'AbortError') return
-      if (name === 'NotAllowedError') {
-        setNeedsClick(true)
-      } else {
-        console.warn('[VoiceWave] speak error:', e)
-      }
+      if (name === 'NotAllowedError') setNeedsClick(true)
+      else console.warn('[VoiceWave]', e)
       stopAnim()
     }
   }, [ready])
 
-  // Try auto-play on mount; browser will throw NotAllowedError if blocked
+  // Expose speak() to parent via ref
+  useImperativeHandle(ref, () => ({ speak }), [speak])
+
+  // Try auto-play on mount; browser may block it
   useEffect(() => {
     if (ready && greeting) {
       const t = setTimeout(() => speak(greeting), 600)
@@ -131,12 +132,20 @@ export function VoiceWave({ greeting }: Props) {
     <div
       className={`voice-wave${playing ? ' playing' : ''}${needsClick ? ' needs-click' : ''}`}
       title={needsClick ? 'Click to activate voice' : 'CORTEX Voice — click to replay'}
-      onClick={() => greeting && speak(greeting)}
+      onClick={() => {
+        if (needsClick && greeting) {
+          // First click unlocks AudioContext, then speak
+          ctxRef.current = new AudioContext()
+          ctxRef.current.resume().then(() => speak(greeting))
+        } else if (greeting) {
+          speak(greeting)
+        }
+      }}
     >
-      {needsClick && <span className="voice-wave-tap">▶</span>}
+      {needsClick && <span className="voice-wave-tap">▶ TAP</span>}
       {bars.map((h, i) => (
         <div key={i} className="voice-bar" style={{ height: `${h}px` }} />
       ))}
     </div>
   )
-}
+})
