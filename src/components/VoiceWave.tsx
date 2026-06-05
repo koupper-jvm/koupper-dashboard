@@ -12,10 +12,11 @@ export function VoiceWave({ greeting }: Props) {
   const [ready, setReady]       = useState(false)
   const [needsClick, setNeedsClick] = useState(false)
 
-  const analyserRef = useRef<AnalyserNode | null>(null)
-  const animRef     = useRef<number>(0)
-  const ctxRef      = useRef<AudioContext | null>(null)
-  const audioRef    = useRef<HTMLAudioElement | null>(null)
+  const analyserRef  = useRef<AnalyserNode | null>(null)
+  const animRef      = useRef<number>(0)
+  const ctxRef       = useRef<AudioContext | null>(null)
+  const audioRef     = useRef<HTMLAudioElement | null>(null)
+  const speakingRef  = useRef(false)
 
   useEffect(() => {
     fetch('/api/voice/status')
@@ -44,7 +45,8 @@ export function VoiceWave({ greeting }: Props) {
   }
 
   const speak = useCallback(async (text: string) => {
-    if (!ready) return
+    if (!ready || speakingRef.current) return
+    speakingRef.current = true
     try {
       const res = await fetch('/api/voice', {
         method: 'POST',
@@ -77,14 +79,14 @@ export function VoiceWave({ greeting }: Props) {
       analyserRef.current = analyser
 
       audio.onplay  = () => { setPlaying(true); setNeedsClick(false); animate() }
-      audio.onended = stopAnim
-      audio.onerror = stopAnim
+      audio.onended = () => { stopAnim(); speakingRef.current = false }
+      audio.onerror = () => { stopAnim(); speakingRef.current = false }
 
       await audio.play()
     } catch (e: unknown) {
+      speakingRef.current = false
       const name = (e as { name?: string })?.name
       if (name === 'NotAllowedError') {
-        // Autoplay blocked — show tap-to-activate indicator
         setNeedsClick(true)
       } else {
         console.warn('[VoiceWave] speak error:', e)
