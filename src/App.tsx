@@ -169,7 +169,7 @@ export default function App() {
 
                   {/* Chat — resizable height */}
                   <div style={{ height: `${chatPct}%`, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 160 }}>
-                    <CortexChat onJobSelect={handleJobSelect} onSpeak={t => voiceRef.current?.speak(t)} />
+                    <CortexChat onJobSelect={handleJobSelect} onSpeak={t => voiceRef.current?.speak(t)} onStop={() => voiceRef.current?.stop()} />
                   </div>
 
                   {/* Vertical resize handle */}

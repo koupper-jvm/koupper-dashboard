@@ -4,6 +4,7 @@ const BAR_COUNT = 38
 
 export interface VoiceHandle {
   speak: (text: string) => void
+  stop:  () => void
 }
 
 interface Props {
@@ -105,8 +106,15 @@ export const VoiceWave = forwardRef<VoiceHandle, Props>(function VoiceWave({ gre
     playText(ctxRef.current, text)
   }, [ready, unlocked])
 
-  // Expose speak() to parent (CortexChat uses this for responses)
-  useImperativeHandle(ref, () => ({ speak }), [speak])
+  function stop() {
+    abortRef.current?.abort()
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
+    pendingRef.current = null
+    stopAnim()
+  }
+
+  // Expose speak() and stop() to parent
+  useImperativeHandle(ref, () => ({ speak, stop }), [speak])
 
   // Listen for first user interaction ANYWHERE on the page
   useEffect(() => {

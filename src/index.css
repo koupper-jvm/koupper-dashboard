@@ -666,3 +666,29 @@ body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidde
 }
 .chat-send:disabled { opacity: .4; cursor: default; }
 .chat-send-icon { font-size: 14px; }
+
+/* Input actions column (mute + send) */
+.chat-input-actions {
+  display: flex; flex-direction: column; gap: 4px; flex-shrink: 0;
+}
+
+/* Mute toggle button */
+.chat-mute-btn {
+  padding: 4px 8px; background: #12143a; border: 1px solid #2d2060;
+  border-radius: 6px; color: #a78bfa; cursor: pointer; font-size: 14px;
+  transition: all .2s; height: 28px; display: flex; align-items: center;
+}
+.chat-mute-btn:hover { background: #1a1c4a; border-color: #5b21b6; }
+.chat-mute-btn.muted { color: #4b5563; border-color: #1e1e3a; background: #0a0c14; }
+
+/* Replay button on CORTEX messages */
+.chat-bubble { position: relative; }
+.chat-replay-btn {
+  position: absolute; bottom: 4px; right: 6px;
+  background: none; border: none; cursor: pointer;
+  font-size: 12px; opacity: 0; transition: opacity .2s;
+  padding: 2px 4px; border-radius: 4px;
+  color: #7c3aed;
+}
+.chat-bubble:hover .chat-replay-btn { opacity: 1; }
+.chat-replay-btn:hover { background: rgba(124,58,237,.15); }

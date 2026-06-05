@@ -15,6 +15,7 @@ interface ChatSession {
 interface Props {
   onJobSelect: (job: { queue: string; id: string }) => void
   onSpeak?: (text: string) => void
+  onStop?:  () => void
 }
 
 const SESSIONS_KEY = 'cortex-chat-sessions'
@@ -71,14 +72,30 @@ function cleanLogLines(lines: string[]): string {
   return result.join('\n').replace(/\n{3,}/g, '\n\n').trim()
 }
 
-export function CortexChat({ onJobSelect, onSpeak }: Props) {
+const VOICE_MUTED_KEY = 'cortex-voice-muted'
+
+export function CortexChat({ onJobSelect, onSpeak, onStop }: Props) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput]       = useState('')
   const [thinking, setThinking] = useState(false)
   const [sessions, setSessions] = useState<ChatSession[]>(loadSessions)
   const [showHistory, setShowHistory] = useState(false)
+  const [voiceMuted, setVoiceMuted]   = useState(() => localStorage.getItem(VOICE_MUTED_KEY) === 'true')
   const chatRef = useRef<HTMLDivElement>(null)
   const currentSessionId = useRef<string | null>(null)
+
+  function toggleMute() {
+    setVoiceMuted(prev => {
+      const next = !prev
+      localStorage.setItem(VOICE_MUTED_KEY, String(next))
+      if (next) onStop?.()   // silencia el audio en curso al mutar
+      return next
+    })
+  }
+
+  function speak(text: string) {
+    if (!voiceMuted && onSpeak) onSpeak(text)
+  }
 
   function scrollDown() {
     setTimeout(() => {
@@ -166,11 +183,9 @@ export function CortexChat({ onJobSelect, onSpeak }: Props) {
               setThinking(false)
               setMessages(prev => [...prev, { role: 'cortex', text: response }])
               scrollDown()
-              // Speak response if voice is active (truncate to ~400 chars for speed)
-              if (onSpeak) {
-                const voiceText = response.replace(/```[\s\S]*?```/g, '').slice(0, 400).trim()
-                if (voiceText) onSpeak(voiceText)
-              }
+              // Speak response if voice is not muted
+              const voiceText = response.replace(/```[\s\S]*?```/g, '').slice(0, 400).trim()
+              if (voiceText) speak(voiceText)
             }
           } else {
             // Raw log grew even though clean text looks the same — tools still running, reset
@@ -264,6 +279,16 @@ export function CortexChat({ onJobSelect, onSpeak }: Props) {
                 )}
                 <div className="chat-bubble">
                   <div className="chat-msg-text">{m.text}</div>
+                  {m.role === 'cortex' && onSpeak && (
+                    <button
+                      className="chat-replay-btn"
+                      title={voiceMuted ? 'Voz silenciada' : 'Reproducir audio'}
+                      onClick={() => {
+                        const t = m.text.replace(/```[\s\S]*?```/g, '').slice(0, 400).trim()
+                        if (t) speak(t)
+                      }}
+                    >{voiceMuted ? '🔇' : '🔊'}</button>
+                  )}
                 </div>
               </div>
             ))}
@@ -293,9 +318,16 @@ export function CortexChat({ onJobSelect, onSpeak }: Props) {
               }}
               rows={2}
             />
-            <button className="chat-send" onClick={send} disabled={thinking}>
-              <span className="chat-send-icon">⚡</span>
-            </button>
+            <div className="chat-input-actions">
+              <button
+                className={`chat-mute-btn ${voiceMuted ? 'muted' : ''}`}
+                onClick={toggleMute}
+                title={voiceMuted ? 'Activar voz' : 'Silenciar voz'}
+              >{voiceMuted ? '🔇' : '🔊'}</button>
+              <button className="chat-send" onClick={send} disabled={thinking}>
+                <span className="chat-send-icon">⚡</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

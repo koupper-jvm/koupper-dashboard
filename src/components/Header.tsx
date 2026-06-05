@@ -35,7 +35,7 @@ export function Header({ status, cortexActive, voiceRef }: Props) {
           <span className="header-title-pixel">CORTEX</span>
           <span className="header-subtitle">IGLY SWARM MONITOR</span>
         </div>
-        <VoiceWave ref={voiceRef} greeting="CORTEX online. All systems nominal." />
+        <VoiceWave ref={voiceRef} greeting="CORTEX en línea. Todos los sistemas operativos." />
       </div>
       <div className="header-right">
         {cortexActive && <span className="cortex-badge">● ONLINE</span>}
