@@ -71,7 +71,14 @@ export function VoiceWave({ greeting }: Props) {
         ctxRef.current = new AudioContext()
       }
       const ctx = ctxRef.current
-      if (ctx.state === 'suspended') await ctx.resume()
+      if (ctx.state === 'suspended') {
+        try { await ctx.resume() } catch (_) {}
+      }
+      if (ctx.state !== 'running') {
+        // AudioContext needs a user gesture to activate — show tap indicator
+        setNeedsClick(true)
+        return
+      }
 
       const audio = new Audio(url)
       audio.crossOrigin = 'anonymous'
