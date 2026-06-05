@@ -37,6 +37,21 @@
   box-shadow: 0 0 4px rgba(167,139,250,.6);
   animation: none;
 }
+/* needs-click — autoplay was blocked, show tap indicator */
+.voice-wave.needs-click { opacity: 1; }
+.voice-wave.needs-click .voice-bar { opacity: 0.3; }
+.voice-wave-tap {
+  position: absolute;
+  font-size: 11px;
+  color: #a78bfa;
+  animation: voice-tap-pulse 1.2s ease-in-out infinite;
+  pointer-events: none;
+  margin-right: 4px;
+}
+@keyframes voice-tap-pulse {
+  0%, 100% { opacity: .4; transform: scale(1); }
+  50%       { opacity: 1;  transform: scale(1.2); }
+}
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 

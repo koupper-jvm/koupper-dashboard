@@ -7,17 +7,16 @@ interface Props {
 }
 
 export function VoiceWave({ greeting }: Props) {
-  const [bars, setBars]       = useState<number[]>(Array(BAR_COUNT).fill(3))
-  const [playing, setPlaying] = useState(false)
-  const [ready, setReady]     = useState(false)
+  const [bars, setBars]         = useState<number[]>(Array(BAR_COUNT).fill(3))
+  const [playing, setPlaying]   = useState(false)
+  const [ready, setReady]       = useState(false)
+  const [needsClick, setNeedsClick] = useState(false)
 
   const analyserRef = useRef<AnalyserNode | null>(null)
   const animRef     = useRef<number>(0)
   const ctxRef      = useRef<AudioContext | null>(null)
   const audioRef    = useRef<HTMLAudioElement | null>(null)
-  const spokenRef   = useRef(false)
 
-  // Check if voice engine is ready
   useEffect(() => {
     fetch('/api/voice/status')
       .then(r => r.json())
@@ -38,7 +37,6 @@ export function VoiceWave({ greeting }: Props) {
     const step = Math.floor(data.length / BAR_COUNT)
     setBars(Array.from({ length: BAR_COUNT }, (_, i) => {
       const raw = data[Math.min(i * step, data.length - 1)] / 255
-      // Boost mid frequencies for a more natural waveform shape
       const boost = 1 - Math.abs((i / BAR_COUNT) - 0.5) * 0.6
       return Math.max(3, raw * boost * 44)
     }))
@@ -57,7 +55,6 @@ export function VoiceWave({ greeting }: Props) {
       const { url, error } = await res.json()
       if (error || !url) return
 
-      // Stop previous audio
       if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
       cancelAnimationFrame(animRef.current)
 
@@ -67,30 +64,42 @@ export function VoiceWave({ greeting }: Props) {
       const ctx = ctxRef.current
       if (ctx.state === 'suspended') await ctx.resume()
 
-      const audio    = new Audio(url)
+      const audio = new Audio(url)
+      audio.crossOrigin = 'anonymous'
       audioRef.current = audio
 
       const source   = ctx.createMediaElementSource(audio)
       const analyser = ctx.createAnalyser()
-      analyser.fftSize        = 128
+      analyser.fftSize = 128
       analyser.smoothingTimeConstant = 0.75
       source.connect(analyser)
       analyser.connect(ctx.destination)
       analyserRef.current = analyser
 
-      audio.onplay   = () => { setPlaying(true); animate() }
-      audio.onended  = stopAnim
-      audio.onerror  = stopAnim
+      audio.onplay  = () => { setPlaying(true); setNeedsClick(false); animate() }
+      audio.onended = stopAnim
+      audio.onerror = stopAnim
 
       await audio.play()
-    } catch (e) {
-      console.warn('[VoiceWave] speak error:', e)
+    } catch (e: unknown) {
+      const name = (e as { name?: string })?.name
+      if (name === 'NotAllowedError') {
+        // Autoplay blocked — show tap-to-activate indicator
+        setNeedsClick(true)
+      } else {
+        console.warn('[VoiceWave] speak error:', e)
+      }
       stopAnim()
     }
   }, [ready])
 
-  // Greeting plays on first user click (autoplay blocked by browsers without interaction)
-  // spokenRef stays false until then, so the first click triggers it
+  // Try auto-play on mount once voice is ready
+  useEffect(() => {
+    if (ready && greeting) {
+      const t = setTimeout(() => speak(greeting), 600)
+      return () => clearTimeout(t)
+    }
+  }, [ready, greeting, speak])
 
   useEffect(() => {
     return () => {
@@ -103,13 +112,13 @@ export function VoiceWave({ greeting }: Props) {
 
   return (
     <div
-      className={`voice-wave${playing ? ' playing' : ''}`}
-      title={spokenRef.current ? 'CORTEX Voice — click to replay' : 'Click to activate CORTEX voice'}
-      onClick={() => {
-        if (!spokenRef.current) spokenRef.current = true
-        if (greeting) speak(greeting)
-      }}
+      className={`voice-wave${playing ? ' playing' : ''}${needsClick ? ' needs-click' : ''}`}
+      title={needsClick ? 'Click to activate voice' : 'CORTEX Voice — click to replay'}
+      onClick={() => greeting && speak(greeting)}
     >
+      {needsClick && (
+        <span className="voice-wave-tap">▶</span>
+      )}
       {bars.map((h, i) => (
         <div key={i} className="voice-bar" style={{ height: `${h}px` }} />
       ))}
