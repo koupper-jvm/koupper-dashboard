@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { ConnectionStatus } from '../hooks/useSSE'
 import AuroraRing from './AuroraRing'
+import { VoiceWave } from './VoiceWave'
 
 interface Props {
   status: ConnectionStatus
@@ -32,6 +33,7 @@ export function Header({ status, cortexActive }: Props) {
           <span className="header-title-pixel">CORTEX</span>
           <span className="header-subtitle">IGLY SWARM MONITOR</span>
         </div>
+        <VoiceWave greeting="CORTEX online. All systems nominal." />
       </div>
       <div className="header-right">
         {cortexActive && <span className="cortex-badge">● ONLINE</span>}
