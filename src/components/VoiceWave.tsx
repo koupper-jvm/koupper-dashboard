@@ -22,6 +22,7 @@ export const VoiceWave = forwardRef<VoiceHandle, Props>(function VoiceWave({ gre
   const audioRef       = useRef<HTMLAudioElement | null>(null)
   const abortRef       = useRef<AbortController | null>(null)
   const pendingRef     = useRef<string | null>(null)  // text to speak once unlocked
+  const lastSpokenRef  = useRef<string | null>(null)  // last spoken text (for replay)
   const unlockingRef   = useRef(false)                // prevent double unlock
 
   useEffect(() => {
@@ -51,6 +52,7 @@ export const VoiceWave = forwardRef<VoiceHandle, Props>(function VoiceWave({ gre
   }
 
   async function playText(ctx: AudioContext, text: string) {
+    lastSpokenRef.current = text
     abortRef.current?.abort()
     abortRef.current = new AbortController()
 
@@ -155,9 +157,12 @@ export const VoiceWave = forwardRef<VoiceHandle, Props>(function VoiceWave({ gre
   return (
     <div
       className={`voice-wave${playing ? ' playing' : ''}${!unlocked ? ' needs-click' : ''}`}
-      title={unlocked ? 'CORTEX Voice — click to replay greeting' : 'Voice activates on first interaction'}
+      title={unlocked ? 'Click to replay last response' : 'Voice activates on first interaction'}
       onClick={() => {
-        if (unlocked && ctxRef.current && greeting) playText(ctxRef.current, greeting)
+        if (unlocked && ctxRef.current) {
+          const text = lastSpokenRef.current ?? greeting
+          if (text) playText(ctxRef.current, text)
+        }
       }}
     >
       {!unlocked && <span className="voice-wave-tap">▶ TAP</span>}
