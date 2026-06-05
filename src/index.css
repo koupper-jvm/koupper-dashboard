@@ -587,7 +587,7 @@ body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidde
 /* Input area */
 .chat-input-row {
   display: flex; padding: 8px; border-top: 1px solid #1e1e3a; gap: 6px;
-  background: #0a0c14; align-items: flex-end;
+  background: #0a0c14; align-items: center;
 }
 .chat-input {
   flex: 1; background: #0d1117; border: 1px solid #2d2060; border-radius: 8px;
