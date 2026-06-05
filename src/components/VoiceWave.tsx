@@ -11,10 +11,11 @@ interface Props {
 }
 
 export const VoiceWave = forwardRef<VoiceHandle, Props>(function VoiceWave({ greeting }, ref) {
-  const [bars, setBars]             = useState<number[]>(Array(BAR_COUNT).fill(3))
-  const [playing, setPlaying]       = useState(false)
-  const [ready, setReady]           = useState(false)
-  const [needsClick, setNeedsClick] = useState(false)
+  const [bars, setBars]         = useState<number[]>(Array(BAR_COUNT).fill(3))
+  const [playing, setPlaying]   = useState(false)
+  const [ready, setReady]       = useState(false)
+  // Always start needing a click — browser blocks AudioContext without user gesture
+  const [unlocked, setUnlocked] = useState(false)
 
   const analyserRef = useRef<AnalyserNode | null>(null)
   const animRef     = useRef<number>(0)
@@ -49,7 +50,7 @@ export const VoiceWave = forwardRef<VoiceHandle, Props>(function VoiceWave({ gre
   }
 
   const speak = useCallback(async (text: string) => {
-    if (!ready) return
+    if (!ready || !unlocked) return
 
     abortRef.current?.abort()
     abortRef.current = new AbortController()
@@ -69,18 +70,7 @@ export const VoiceWave = forwardRef<VoiceHandle, Props>(function VoiceWave({ gre
       const { url, error } = await res.json()
       if (error || !url) return
 
-      if (!ctxRef.current || ctxRef.current.state === 'closed') {
-        ctxRef.current = new AudioContext()
-      }
-      const ctx = ctxRef.current
-      if (ctx.state === 'suspended') {
-        try { await ctx.resume() } catch (_) {}
-      }
-      if (ctx.state !== 'running') {
-        setNeedsClick(true)
-        return
-      }
-
+      const ctx = ctxRef.current!
       const audio = new Audio(url)
       audio.crossOrigin = 'anonymous'
       audioRef.current = audio
@@ -93,30 +83,66 @@ export const VoiceWave = forwardRef<VoiceHandle, Props>(function VoiceWave({ gre
       analyser.connect(ctx.destination)
       analyserRef.current = analyser
 
-      audio.onplay  = () => { setPlaying(true); setNeedsClick(false); animate() }
+      audio.onplay  = () => { setPlaying(true); animate() }
       audio.onended = stopAnim
       audio.onerror = stopAnim
 
       await audio.play()
     } catch (e: unknown) {
-      const name = (e as { name?: string })?.name
-      if (name === 'AbortError') return
-      if (name === 'NotAllowedError') setNeedsClick(true)
-      else console.warn('[VoiceWave]', e)
+      if ((e as { name?: string })?.name !== 'AbortError')
+        console.warn('[VoiceWave]', e)
       stopAnim()
     }
-  }, [ready])
+  }, [ready, unlocked])
 
-  // Expose speak() to parent via ref
+  // Expose speak() to parent so chat responses can trigger voice
   useImperativeHandle(ref, () => ({ speak }), [speak])
 
-  // Try auto-play on mount; browser may block it
-  useEffect(() => {
-    if (ready && greeting) {
-      const t = setTimeout(() => speak(greeting), 600)
-      return () => clearTimeout(t)
+  async function activate() {
+    // Must be called directly from a click event so AudioContext is allowed
+    const ctx = new AudioContext()
+    await ctx.resume()
+    ctxRef.current = ctx
+    setUnlocked(true)
+    if (greeting) {
+      // speak() checks unlocked, but we just set it — call directly here
+      abortRef.current?.abort()
+      abortRef.current = new AbortController()
+      try {
+        const res = await fetch('/api/voice', {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: greeting,
+          signal: abortRef.current.signal,
+        })
+        if (!res.ok) return
+        const { url, error } = await res.json()
+        if (error || !url) return
+
+        const audio = new Audio(url)
+        audio.crossOrigin = 'anonymous'
+        audioRef.current = audio
+
+        const source   = ctx.createMediaElementSource(audio)
+        const analyser = ctx.createAnalyser()
+        analyser.fftSize = 128
+        analyser.smoothingTimeConstant = 0.75
+        source.connect(analyser)
+        analyser.connect(ctx.destination)
+        analyserRef.current = analyser
+
+        audio.onplay  = () => { setPlaying(true); animate() }
+        audio.onended = stopAnim
+        audio.onerror = stopAnim
+
+        await audio.play()
+      } catch (e: unknown) {
+        if ((e as { name?: string })?.name !== 'AbortError')
+          console.warn('[VoiceWave] activate:', e)
+        stopAnim()
+      }
     }
-  }, [ready, greeting, speak])
+  }
 
   useEffect(() => {
     return () => {
@@ -130,19 +156,14 @@ export const VoiceWave = forwardRef<VoiceHandle, Props>(function VoiceWave({ gre
 
   return (
     <div
-      className={`voice-wave${playing ? ' playing' : ''}${needsClick ? ' needs-click' : ''}`}
-      title={needsClick ? 'Click to activate voice' : 'CORTEX Voice — click to replay'}
+      className={`voice-wave${playing ? ' playing' : ''}${!unlocked ? ' needs-click' : ''}`}
+      title={unlocked ? 'CORTEX Voice — click to replay' : 'Click to activate CORTEX voice'}
       onClick={() => {
-        if (needsClick && greeting) {
-          // First click unlocks AudioContext, then speak
-          ctxRef.current = new AudioContext()
-          ctxRef.current.resume().then(() => speak(greeting))
-        } else if (greeting) {
-          speak(greeting)
-        }
+        if (!unlocked) activate()
+        else if (greeting) speak(greeting)
       }}
     >
-      {needsClick && <span className="voice-wave-tap">▶ TAP</span>}
+      {!unlocked && <span className="voice-wave-tap">▶ TAP</span>}
       {bars.map((h, i) => (
         <div key={i} className="voice-bar" style={{ height: `${h}px` }} />
       ))}
