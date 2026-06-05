@@ -89,14 +89,8 @@ export function VoiceWave({ greeting }: Props) {
     }
   }, [ready])
 
-  // Speak greeting once voice engine is confirmed ready
-  useEffect(() => {
-    if (ready && greeting && !spokenRef.current) {
-      spokenRef.current = true
-      const t = setTimeout(() => speak(greeting), 800)
-      return () => clearTimeout(t)
-    }
-  }, [ready, greeting, speak])
+  // Greeting plays on first user click (autoplay blocked by browsers without interaction)
+  // spokenRef stays false until then, so the first click triggers it
 
   useEffect(() => {
     return () => {
@@ -110,8 +104,11 @@ export function VoiceWave({ greeting }: Props) {
   return (
     <div
       className={`voice-wave${playing ? ' playing' : ''}`}
-      title="CORTEX Voice — click to replay"
-      onClick={() => greeting && speak(greeting)}
+      title={spokenRef.current ? 'CORTEX Voice — click to replay' : 'Click to activate CORTEX voice'}
+      onClick={() => {
+        if (!spokenRef.current) spokenRef.current = true
+        if (greeting) speak(greeting)
+      }}
     >
       {bars.map((h, i) => (
         <div key={i} className="voice-bar" style={{ height: `${h}px` }} />

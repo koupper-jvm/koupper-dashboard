@@ -6,6 +6,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': 'http://localhost:18083',
+      '/voice': 'http://localhost:18083',
       '/events': {
         target: 'http://localhost:18083',
         changeOrigin: true,
