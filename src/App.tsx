@@ -7,6 +7,7 @@ import { Header } from './components/Header'
 import type { VoiceHandle } from './components/VoiceWave'
 import { MetricsBar } from './components/MetricsBar'
 import { ObservabilityBar } from './components/ObservabilityBar'
+import { ProviderTokensPanel } from './components/ProviderTokensPanel'
 import { JobsPanel } from './components/JobsPanel'
 import { LogViewer } from './components/LogViewer'
 import { AgentDetailPanel } from './components/AgentDetailPanel'
@@ -43,8 +44,9 @@ export default function App() {
   })
   const log = useLogPoller(selectedJob)
 
-  const metrics   = snapshot?.metrics      ?? EMPTY_METRICS
-  const obs       = snapshot?.observability ?? EMPTY_OBS
+  const metrics      = snapshot?.metrics      ?? EMPTY_METRICS
+  const obs          = snapshot?.observability ?? EMPTY_OBS
+  const tokenMetrics = snapshot?.tokenMetrics
   const jobs      = snapshot?.jobs         ?? []
   const agents    = snapshot?.agents       ?? []
   const schedules = snapshot?.schedules    ?? []
@@ -103,6 +105,9 @@ export default function App() {
       <Header status={status} cortexActive={snapshot?.cortexActive ?? false} voiceRef={voiceRef} />
       <MetricsBar metrics={metrics} agentCount={agents.length} scheduleCount={schedules.length} />
       <ObservabilityBar obs={obs} />
+      {tokenMetrics && tokenMetrics.byProvider.length > 0 && (
+        <ProviderTokensPanel tokens={tokenMetrics} />
+      )}
 
       <div className="main-layout">
 

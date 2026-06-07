@@ -132,6 +132,28 @@ body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidde
 .obs-sep { width: 1px; height: 28px; background: #1a2030; flex-shrink: 0; }
 .obs-spark-wrap { display: flex; flex-direction: column; align-items: flex-start; }
 
+/* ── Provider tokens panel ── */
+.provider-tokens-panel {
+  padding: 8px 20px 10px; border-bottom: 1px solid var(--border);
+  background: #070a0f; flex-shrink: 0;
+}
+.pt-header {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;
+}
+.pt-title { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+.pt-total { font-size: 11px; font-weight: bold; color: var(--text); font-variant-numeric: tabular-nums; }
+.pt-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.pt-table th {
+  text-align: left; color: var(--muted); font-size: 9px; text-transform: uppercase;
+  letter-spacing: 0.8px; padding: 0 8px 3px 0; font-weight: normal;
+}
+.pt-table td { padding: 2px 8px 2px 0; vertical-align: middle; }
+.pt-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 5px; vertical-align: middle; flex-shrink: 0; }
+.pt-name { color: var(--text); }
+.pt-num { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
+.pt-bar-wrap { height: 2px; background: var(--border); border-radius: 1px; margin-top: 2px; }
+.pt-bar { height: 2px; border-radius: 1px; transition: width 0.4s ease; }
+
 /* ── Main layout ── */
 .main-layout {
   display: flex; flex: 1; overflow: hidden;

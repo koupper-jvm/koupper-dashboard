@@ -64,11 +64,24 @@ export interface SwarmMetrics {
   failed: number
 }
 
+export interface ProviderTokenRow {
+  provider: string
+  in: number
+  out: number
+  total: number
+}
+
+export interface TokenMetrics {
+  byProvider: ProviderTokenRow[]
+  total: { in: number; out: number; total: number }
+}
+
 export interface SwarmSnapshot {
   type: 'snapshot'
   jobs: Job[]
   metrics: SwarmMetrics
   observability: ObservabilityData
+  tokenMetrics?: TokenMetrics
   agents: Agent[]
   schedules: Schedule[]
   cortexActive: boolean
