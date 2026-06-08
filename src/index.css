@@ -714,3 +714,41 @@ body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidde
 }
 .chat-bubble:hover .chat-replay-btn { opacity: 1; }
 .chat-replay-btn:hover { background: rgba(124,58,237,.15); }
+
+/* ── Log mode tabs (Log / Result) ─────────────────────────────────────── */
+.log-mode-tabs {
+  display: flex; gap: 2px; background: #0a0c14; border: 1px solid #1a1a3a;
+  border-radius: 6px; padding: 2px;
+}
+.log-mode-tab {
+  padding: 3px 10px; border: none; background: transparent;
+  color: var(--muted); font-size: 11px; font-family: inherit; cursor: pointer;
+  border-radius: 4px; transition: all .15s;
+}
+.log-mode-tab:hover { color: var(--text); background: #131530; }
+.log-mode-tab.active { background: #1a1c4a; color: var(--cyan); }
+.log-mode-tab.result-tab.active { color: var(--green); }
+
+/* ── Result JSON viewer ───────────────────────────────────────────────── */
+.result-json-viewer {
+  padding: 0.75rem; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;
+  line-height: 1.6; color: var(--text); overflow: auto;
+}
+.rj-toggle {
+  background: none; border: none; cursor: pointer; color: var(--cyan);
+  font-family: inherit; font-size: 0.78rem; padding: 0;
+}
+.rj-toggle:hover { color: var(--text); }
+.rj-children { margin-left: 1.25rem; border-left: 1px solid #1a1a3a; padding-left: 0.5rem; }
+.rj-row { padding: 1px 0; }
+.rj-key { color: #a78bfa; }
+.rj-colon { color: var(--muted); }
+.rj-str { color: var(--green); word-break: break-all; }
+.rj-num { color: var(--yellow); }
+.rj-bool { color: var(--purple); }
+.rj-null { color: var(--muted); font-style: italic; }
+.rj-idx { color: var(--muted); font-size: 0.7rem; }
+.rj-empty { color: var(--muted); font-style: italic; }
+
+/* [RESULT] line in log */
+.log-result-line { color: var(--green); opacity: 0.7; font-size: 0.72rem; }
