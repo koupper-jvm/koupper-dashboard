@@ -83,6 +83,20 @@ export function CortexChat({ onJobSelect, onSpeak, onStop }: Props) {
   const [voiceMuted, setVoiceMuted]   = useState(() => localStorage.getItem(VOICE_MUTED_KEY) === 'true')
   const chatRef = useRef<HTMLDivElement>(null)
   const currentSessionId = useRef<string | null>(null)
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (pollRef.current !== null) clearInterval(pollRef.current)
+    }
+  }, [])
+
+  function cancelPoll() {
+    if (pollRef.current !== null) {
+      clearInterval(pollRef.current)
+      pollRef.current = null
+    }
+  }
 
   function toggleMute() {
     setVoiceMuted(prev => {
@@ -131,6 +145,7 @@ export function CortexChat({ onJobSelect, onSpeak, onStop }: Props) {
   }, [messages])
 
   function newChat() {
+    cancelPoll()
     currentSessionId.current = null
     setMessages([])
     setThinking(false)
@@ -159,13 +174,14 @@ export function CortexChat({ onJobSelect, onSpeak, onStop }: Props) {
   }
 
   async function pollResponse(linesBeforeSend: number) {
+    cancelPoll()
     let attempts    = 0
     let lastSnap    = ''
     let stableCount = 0
-    let lastRawLen  = linesBeforeSend  // track raw log length to detect ongoing activity
+    let lastRawLen  = linesBeforeSend
 
-    const poll = setInterval(async () => {
-      if (++attempts > 150) { clearInterval(poll); setThinking(false); return }
+    pollRef.current = setInterval(async () => {
+      if (++attempts > 150) { cancelPoll(); setThinking(false); return }
       try {
         const res  = await fetch('/api/logs/cortex-session?queue=cortex')
         const data = await res.json()
@@ -176,19 +192,16 @@ export function CortexChat({ onJobSelect, onSpeak, onStop }: Props) {
         const response = cleanLogLines((data.lines as string[]).slice(linesBeforeSend))
 
         if (response && response === lastSnap) {
-          // Only commit if the raw log hasn't grown either (tools might still be running)
           if (rawLen === lastRawLen) {
             if (++stableCount >= 3) {
-              clearInterval(poll)
+              cancelPoll()
               setThinking(false)
               setMessages(prev => [...prev, { role: 'cortex', text: response }])
               scrollDown()
-              // Speak response if voice is not muted
               const voiceText = response.replace(/```[\s\S]*?```/g, '').slice(0, 400).trim()
               if (voiceText) speak(voiceText)
             }
           } else {
-            // Raw log grew even though clean text looks the same — tools still running, reset
             stableCount = 0
           }
         } else {
