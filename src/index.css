@@ -1155,3 +1155,45 @@ body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidde
   border-radius: 4px; padding: 3px 10px; color: var(--text);
 }
 .cd-empty { font-size: 12px; color: var(--muted); }
+
+/* ── Nodes panel ─────────────────────────────────────────────────────────── */
+.nodes-section { flex-shrink: 0; }
+.nodes-list { display: flex; flex-direction: column; gap: 4px; padding: 4px 0; }
+.nodes-empty { font-size: 11px; color: var(--muted); padding: 8px 12px; }
+
+.node-item {
+  padding: 7px 12px;
+  border-radius: 6px;
+  background: #0d1117;
+  border: 1px solid #21262d;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.node-row-main { display: flex; align-items: center; gap: 7px; }
+.node-dot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+}
+.node-dot-ready { background: #3fb950; box-shadow: 0 0 5px #3fb95066; }
+.node-dot-off   { background: #6e7681; }
+.node-dot-warn  { background: #e3b341; }
+
+.node-host {
+  font-size: 12px; font-weight: 600; color: var(--text);
+  flex: 1; font-family: 'JetBrains Mono', monospace;
+}
+.node-status-badge {
+  font-size: 10px; font-weight: 600; border-radius: 4px;
+  padding: 1px 6px; text-transform: uppercase; letter-spacing: 0.05em;
+}
+.badge-ready { background: #1a3a2a; color: #3fb950; border: 1px solid #2ea04344; }
+.badge-off   { background: #161b22; color: #6e7681; border: 1px solid #30363d; }
+.badge-warn  { background: #2d2012; color: #e3b341; border: 1px solid #e3b34144; }
+
+.node-row-meta {
+  display: flex; align-items: center; gap: 8px;
+  padding-left: 14px;
+  font-size: 11px; color: var(--muted);
+  flex-wrap: wrap;
+}
+.node-role { font-weight: 600; color: #7c3aed; }
+.node-agents { flex: 1; }
+.node-time { font-size: 10px; color: #484f58; }

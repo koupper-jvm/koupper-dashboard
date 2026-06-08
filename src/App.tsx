@@ -13,7 +13,9 @@ import { LogViewer } from './components/LogViewer'
 import { AgentDetailPanel } from './components/AgentDetailPanel'
 import { AgentsList } from './components/AgentsList'
 import { SchedulesList } from './components/SchedulesList'
+import { NodesList } from './components/NodesList'
 import { CortexChat } from './components/CortexChat'
+import { useNodes } from './hooks/useNodes'
 import type { Agent } from './types/api'
 import './index.css'
 
@@ -32,6 +34,8 @@ export default function App() {
   const voiceRef = useRef<VoiceHandle>(null)
   const { leftW, midW, startDrag } = useResize(350, 420)
   const { chatPct, startVDrag, containerRef } = useVerticalResize(48)
+
+  const nodes = useNodes()
 
   const [selectedJob,   setSelectedJob]   = useState<{ queue: string; id: string } | null>(null)
   const [selectedAgent, setSelectedAgent] = useState<{ agent: Agent; source: string } | null>(null)
@@ -232,6 +236,13 @@ export default function App() {
                         <SchedulesList schedules={schedules} />
                       </div>
                     )}
+
+                    <div className="sidebar-section nodes-section">
+                      <div className="panel-header">
+                        Nodes <span className="panel-count">({nodes.length})</span>
+                      </div>
+                      <NodesList nodes={nodes} />
+                    </div>
                   </div>
 
                 </div>
