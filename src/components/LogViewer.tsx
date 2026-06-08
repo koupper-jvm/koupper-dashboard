@@ -11,7 +11,7 @@ type ViewMode = 'log' | 'result'
 function lineClass(line: string): string {
   if (/ERROR|FAIL|\[!\]|\[FAILED\]|\[TIMEOUT\]/.test(line)) return 'log-error'
   if (/\[DONE\]|\[✓\]|✓|\[OK\]/.test(line)) return 'log-ok'
-  if (/▶|\[?\]|CORTEX|\[WORKER\]/.test(line)) return 'log-info'
+  if (/▶|CORTEX|\[WORKER\]/.test(line)) return 'log-info'
   if (line.startsWith('[DEBUG]')) return 'log-dim'
   if (line.startsWith('[RESULT]')) return 'log-result-line'
   return ''
