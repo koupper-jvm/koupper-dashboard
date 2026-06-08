@@ -6,6 +6,9 @@ export interface Job {
   status: JobStatus
   time: string
   result?: string | null
+  pipelineId?: string | null
+  pipelineStep?: number | null
+  pipelineTotal?: number | null
 }
 
 export interface ObservabilityData {

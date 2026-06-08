@@ -752,3 +752,53 @@ body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidde
 
 /* [RESULT] line in log */
 .log-result-line { color: var(--green); opacity: 0.7; font-size: 0.72rem; }
+
+/* ── Pipeline group visualization ────────────────────────────────────── */
+.pipeline-group-header {
+  background: #0c0e1e; cursor: pointer;
+  border-top: 1px solid #1a1a3a; border-bottom: 1px solid #161628;
+}
+.pipeline-group-header:hover { background: #101226; }
+.pipeline-group-header td { padding: 6px 10px; }
+
+.pipeline-header-inner {
+  display: flex; align-items: center; gap: 6px;
+  overflow: hidden;
+}
+.pipeline-chevron { color: var(--muted); font-size: 9px; flex-shrink: 0; }
+.pipeline-icon { color: var(--cyan); font-size: 12px; flex-shrink: 0; }
+.pipeline-name {
+  color: var(--cyan); font-size: 11px; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;
+}
+.pipeline-dots {
+  display: flex; gap: 3px; align-items: center; flex-shrink: 0;
+}
+.pdot {
+  display: inline-block; width: 8px; height: 8px;
+  border-radius: 50%; border: 1px solid rgba(255,255,255,0.08);
+  flex-shrink: 0;
+}
+.pdot-pulse { animation: pdot-pulse 1.2s ease-in-out infinite; }
+@keyframes pdot-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+.pipeline-progress {
+  font-size: 10px; font-weight: 600; flex-shrink: 0;
+  font-family: 'JetBrains Mono', monospace;
+}
+.pipeline-status-badge {
+  font-size: 9px; font-weight: 600; opacity: 0.7; flex-shrink: 0;
+}
+
+.pipeline-step-row { background: #09091a; }
+.pipeline-step-row:hover { background: #0d0d20; }
+.pipeline-step-row td { padding-left: 18px !important; font-size: 11px; }
+.step-marker {
+  color: var(--muted); font-size: 10px; margin-right: 5px;
+  font-family: 'JetBrains Mono', monospace; flex-shrink: 0;
+}
+
+.pipeline-separator td { padding: 0 !important; }
+.separator-line { height: 1px; background: #1a1a3a; margin: 2px 0; }
