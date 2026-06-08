@@ -53,11 +53,13 @@ export interface Agent {
 }
 
 export interface Schedule {
+  id: string
   agent: string
   type: 'cron' | 'rate' | 'once'
   cron?: string
   rateMs?: number
   runAt?: string
+  input?: string
   enabled?: boolean
 }
 

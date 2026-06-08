@@ -394,6 +394,13 @@ body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidde
 .sched-cron  { background: #0a2a1a; color: var(--green); }
 .sched-rate  { background: #1a1a0a; color: var(--yellow); }
 .sched-once  { background: #0a1a2a; color: var(--cyan); }
+.sched-toggle {
+  font-size: 9px; padding: 2px 7px; border-radius: 8px; cursor: pointer;
+  border: 1px solid; background: transparent; transition: opacity .15s;
+}
+.sched-toggle:disabled { opacity: .4; cursor: default; }
+.sched-toggle-on  { color: var(--red);   border-color: var(--red);   }
+.sched-toggle-off { color: var(--green); border-color: var(--green); }
 
 /* ── Agent Cards (new) ── */
 .agents-list { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 0; }
