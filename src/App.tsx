@@ -37,6 +37,7 @@ export default function App() {
   const [selectedAgent, setSelectedAgent] = useState<{ agent: Agent; source: string } | null>(null)
   const [logTitle,      setLogTitle]      = useState('Log')
   const [agentQuery,    setAgentQuery]    = useState('')
+  const [agentTab,      setAgentTab]      = useState<'installed' | 'browse'>('installed')
 
   // Collapsible columns state
   const [collapsed, setCollapsed] = useState<Record<ColKey, boolean>>({
@@ -198,12 +199,28 @@ export default function App() {
                           <button className="agent-search-clear" onClick={() => setAgentQuery('')}>×</button>
                         )}
                       </div>
+                      <div className="agents-tabs">
+                        <button
+                          className={`agents-tab-btn ${agentTab === 'installed' ? 'active' : ''}`}
+                          onClick={() => setAgentTab('installed')}
+                        >
+                          Installed <span className="agents-tab-count">{agents.length}</span>
+                        </button>
+                        <button
+                          className={`agents-tab-btn ${agentTab === 'browse' ? 'active' : ''}`}
+                          onClick={() => setAgentTab('browse')}
+                        >
+                          Browse
+                        </button>
+                      </div>
                       <AgentsList
                         agents={agents}
                         selectedAgent={selectedAgent?.agent.name ?? null}
                         onView={handleViewAgent}
                         onRun={handleRunAgent}
                         query={agentQuery}
+                        tab={agentTab}
+                        onTabChange={setAgentTab}
                       />
                     </div>
 

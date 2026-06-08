@@ -18,6 +18,8 @@ interface Props {
   onView: (name: string) => void
   onRun: (name: string) => void
   query?: string
+  tab: 'installed' | 'browse'
+  onTabChange: (t: 'installed' | 'browse') => void
 }
 
 function scoreAgent(agent: Agent, query: string): number {
@@ -57,12 +59,10 @@ function scoreAgent(agent: Agent, query: string): number {
   return score
 }
 
-type Tab = 'installed' | 'browse'
 type InstallState = 'idle' | 'installing' | 'ok' | 'error'
 
-export function AgentsList({ agents, selectedAgent, onView, onRun, query = '' }: Props) {
+export function AgentsList({ agents, selectedAgent, onView, onRun, query = '', tab, onTabChange: setTab }: Props) {
   const [showAll, setShowAll]   = useState(false)
-  const [tab, setTab]           = useState<Tab>('installed')
   const [registry, setRegistry] = useState<RegistryAgent[] | null>(null)
   const [regError, setRegError] = useState('')
   const [regLoading, setRegLoading] = useState(false)
@@ -123,21 +123,6 @@ export function AgentsList({ agents, selectedAgent, onView, onRun, query = '' }:
 
   return (
     <div className="agents-list">
-      <div className="agents-tabs">
-        <button
-          className={`agents-tab-btn ${tab === 'installed' ? 'active' : ''}`}
-          onClick={() => setTab('installed')}
-        >
-          Installed {agents.length > 0 && <span className="agents-tab-count">{filtered.length}</span>}
-        </button>
-        <button
-          className={`agents-tab-btn ${tab === 'browse' ? 'active' : ''}`}
-          onClick={() => setTab('browse')}
-        >
-          Browse
-        </button>
-      </div>
-
       {/* ── Installed ── */}
       {tab === 'installed' && (
         <>

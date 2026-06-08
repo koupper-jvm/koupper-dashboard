@@ -435,15 +435,17 @@ body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidde
 .agent-card-runs { font-size: 10px; color: #484f58; }
 
 /* ── Agent tabs (Installed / Browse) ── */
-.agents-tabs { display: flex; border-bottom: 1px solid #21262d; margin-bottom: 4px; }
+.agents-list-wrapper { display: flex; flex-direction: column; flex: 1; overflow: hidden; min-height: 0; }
+.agents-tabs { display: flex; border-bottom: 1px solid #30363d; margin-bottom: 6px; flex-shrink: 0; }
 .agents-tab-btn {
-  flex: 1; background: none; border: none; color: var(--muted);
-  font-size: 11px; font-weight: 500; font-family: inherit;
-  padding: 6px 0; cursor: pointer; transition: color 0.15s;
+  flex: 1; background: none; border: none; color: #8b949e;
+  font-size: 12px; font-weight: 600; font-family: inherit;
+  padding: 8px 0; cursor: pointer; transition: color 0.15s;
   border-bottom: 2px solid transparent; margin-bottom: -1px;
+  letter-spacing: 0.02em;
 }
-.agents-tab-btn:hover { color: var(--text); }
-.agents-tab-btn.active { color: var(--text); border-bottom-color: #7c3aed; }
+.agents-tab-btn:hover { color: #e6edf3; }
+.agents-tab-btn.active { color: #e6edf3; border-bottom-color: #7c3aed; }
 .agents-tab-count {
   display: inline-block; background: #21262d; border-radius: 8px;
   padding: 0 5px; font-size: 9px; margin-left: 4px; color: var(--muted);
