@@ -142,4 +142,5 @@ export interface LogResponse {
   jobId: string
   lines: string[]
   error?: string
+  live?: boolean
 }

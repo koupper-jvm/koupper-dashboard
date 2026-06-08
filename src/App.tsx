@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useSSE } from './hooks/useSSE'
-import { useLogPoller } from './hooks/useLogPoller'
+import { useLogStream } from './hooks/useLogStream'
 import { useResize } from './hooks/useResize'
 import { useVerticalResize } from './hooks/useVerticalResize'
 import { Header } from './components/Header'
@@ -42,7 +42,7 @@ export default function App() {
   const [collapsed, setCollapsed] = useState<Record<ColKey, boolean>>({
     left: false, mid: false, right: false,
   })
-  const log = useLogPoller(selectedJob)
+  const log = useLogStream(selectedJob)
 
   const metrics      = snapshot?.metrics      ?? EMPTY_METRICS
   const obs          = snapshot?.observability ?? EMPTY_OBS

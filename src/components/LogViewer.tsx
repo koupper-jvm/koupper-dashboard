@@ -146,6 +146,7 @@ export function LogViewer({ log, title }: Props) {
       <div className="panel-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span>{title}</span>
+          {log?.live && <span className="live-indicator">● LIVE</span>}
           {resultData && (
             <div className="log-mode-tabs">
               <button

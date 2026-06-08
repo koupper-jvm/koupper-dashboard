@@ -767,6 +767,15 @@ body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidde
 .chat-replay-btn:hover { background: rgba(124,58,237,.15); }
 
 /* ── Log mode tabs (Log / Result) ─────────────────────────────────────── */
+.live-indicator {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+  color: #00ff88; animation: live-pulse 1.2s ease-in-out infinite;
+}
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
 .log-mode-tabs {
   display: flex; gap: 2px; background: #0a0c14; border: 1px solid #1a1a3a;
   border-radius: 6px; padding: 2px;
