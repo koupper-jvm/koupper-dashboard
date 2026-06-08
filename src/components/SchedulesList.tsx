@@ -38,7 +38,7 @@ export function SchedulesList({ schedules }: Props) {
 
   return (
     <div className="schedules-list">
-      {schedules.map((s, i) => {
+      {schedules.map((s) => {
         const info = s.type === 'cron'
           ? s.cron
           : s.type === 'rate'
@@ -48,7 +48,7 @@ export function SchedulesList({ schedules }: Props) {
         const color = enabled ? 'var(--green)' : 'var(--muted)'
         const isBusy = pending === s.id
         return (
-          <div key={i} className="schedule-item">
+          <div key={s.id} className="schedule-item">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ color, fontSize: 12 }}>
                 {enabled ? '●' : '○'} {s.agent}
