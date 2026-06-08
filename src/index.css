@@ -201,6 +201,24 @@ body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidde
   cursor: pointer; font-family: inherit;
 }
 .filter-btn.active { border-color: var(--cyan); color: var(--cyan); background: #0a1929; }
+.jobs-actions-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 12px; border-bottom: 1px solid var(--border);
+  background: #0d0d14;
+}
+.job-action-btn {
+  padding: 3px 10px; border-radius: 10px; border: 1px solid var(--border);
+  background: transparent; color: var(--muted); font-size: 11px;
+  cursor: pointer; font-family: inherit; transition: all 0.15s;
+}
+.job-action-btn:hover:not(:disabled) { opacity: 0.85; }
+.job-action-btn:disabled { opacity: 0.5; cursor: default; }
+.job-action-btn.retry-btn { border-color: var(--yellow); color: var(--yellow); }
+.job-action-btn.retry-btn.ok { border-color: var(--green); color: var(--green); }
+.job-action-btn.retry-btn.error { border-color: var(--red); color: var(--red); }
+.job-action-btn.purge-btn { border-color: var(--red); color: var(--red); }
+.job-action-btn.purge-btn.ok { border-color: var(--green); color: var(--green); }
+.job-action-msg { font-size: 11px; color: var(--muted); }
 .jobs-scroll { flex: 1; overflow-y: auto; }
 .jobs-table { width: 100%; border-collapse: collapse; }
 .jobs-table th {

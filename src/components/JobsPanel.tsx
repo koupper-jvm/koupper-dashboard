@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Job, JobStatus } from '../types/api'
 
 type Filter = 'all' | 'active' | 'done' | 'failed'
+type ActionState = 'idle' | 'loading' | 'ok' | 'error'
 
 interface Props {
   jobs: Job[]
@@ -124,9 +125,45 @@ function PipelineGroup({ pipelineId, steps, selectedJob, onSelect }: PipelineGro
   )
 }
 
+async function postJobAction(path: string, body: object): Promise<{ ok: boolean; requeued?: number; purged?: number; error?: string }> {
+  const res = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  return res.json()
+}
+
 export function JobsPanel({ jobs, selectedJob, onSelect }: Props) {
-  const [filter, setFilter] = useState<Filter>('all')
-  const [search, setSearch] = useState('')
+  const [filter, setFilter]       = useState<Filter>('all')
+  const [search, setSearch]       = useState('')
+  const [retryState, setRetry]    = useState<ActionState>('idle')
+  const [purgeState, setPurge]    = useState<ActionState>('idle')
+  const [actionMsg, setActionMsg] = useState('')
+
+  async function handleRetry() {
+    setRetry('loading'); setActionMsg('')
+    try {
+      const data = await postJobAction('/api/jobs/retry', {})
+      setRetry(data.ok ? 'ok' : 'error')
+      setActionMsg(data.ok ? `↩ ${data.requeued ?? 0} job(s) re-queued` : data.error ?? 'error')
+    } catch {
+      setRetry('error'); setActionMsg('Network error')
+    }
+    setTimeout(() => { setRetry('idle'); setActionMsg('') }, 3000)
+  }
+
+  async function handlePurgeDead() {
+    setPurge('loading'); setActionMsg('')
+    try {
+      const data = await postJobAction('/api/jobs/purge', { bucket: 'dead' })
+      setPurge(data.ok ? 'ok' : 'error')
+      setActionMsg(data.ok ? `✗ ${data.purged ?? 0} dead job(s) purged` : data.error ?? 'error')
+    } catch {
+      setPurge('error'); setActionMsg('Network error')
+    }
+    setTimeout(() => { setPurge('idle'); setActionMsg('') }, 3000)
+  }
 
   const filtered = applyFilter(jobs, filter)
   const visible = search.trim()
@@ -153,6 +190,9 @@ export function JobsPanel({ jobs, selectedJob, onSelect }: Props) {
 
   const isEmpty = pipelineMap.size === 0 && individualJobs.length === 0
 
+  const failedCount = jobs.filter(j => j.status === 'FAILED').length
+  const deadCount   = jobs.filter(j => j.status === 'DEAD').length
+
   return (
     <div className="jobs-panel">
       <div className="panel-header">
@@ -169,6 +209,30 @@ export function JobsPanel({ jobs, selectedJob, onSelect }: Props) {
           ))}
         </div>
       </div>
+
+      {(failedCount > 0 || deadCount > 0) && (
+        <div className="jobs-actions-row">
+          {failedCount > 0 && (
+            <button
+              className={`job-action-btn retry-btn ${retryState !== 'idle' ? retryState : ''}`}
+              disabled={retryState === 'loading'}
+              onClick={handleRetry}
+            >
+              {retryState === 'loading' ? '◌' : retryState === 'ok' ? '✓' : retryState === 'error' ? '✗' : `↩ Retry Failed (${failedCount})`}
+            </button>
+          )}
+          {deadCount > 0 && (
+            <button
+              className={`job-action-btn purge-btn ${purgeState !== 'idle' ? purgeState : ''}`}
+              disabled={purgeState === 'loading'}
+              onClick={handlePurgeDead}
+            >
+              {purgeState === 'loading' ? '◌' : purgeState === 'ok' ? '✓' : purgeState === 'error' ? '✗' : `☠ Purge Dead (${deadCount})`}
+            </button>
+          )}
+          {actionMsg && <span className="job-action-msg">{actionMsg}</span>}
+        </div>
+      )}
       <div className="jobs-search-row">
         <input
           className="jobs-search-input"
