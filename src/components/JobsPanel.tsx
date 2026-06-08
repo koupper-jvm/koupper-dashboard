@@ -165,28 +165,39 @@ export function JobsPanel({ jobs, selectedJob, onSelect }: Props) {
     setTimeout(() => { setPurge('idle'); setActionMsg('') }, 3000)
   }
 
-  const filtered = applyFilter(jobs, filter)
-  const visible = search.trim()
-    ? filtered.filter(j =>
-        j.id.toLowerCase().includes(search.toLowerCase()) ||
-        j.queue.toLowerCase().includes(search.toLowerCase()) ||
-        (j.pipelineId ?? '').toLowerCase().includes(search.toLowerCase())
-      )
-    : filtered
-
-  // Separate pipeline jobs and individual jobs
-  const pipelineMap = new Map<string, Job[]>()
-  const individualJobs: Job[] = []
-
-  visible.forEach(j => {
+  // Group all jobs by pipelineId first, then apply filter at group level
+  const allPipelineMap = new Map<string, Job[]>()
+  const allIndividual: Job[] = []
+  jobs.forEach(j => {
     if (j.pipelineId) {
-      const group = pipelineMap.get(j.pipelineId) ?? []
+      const group = allPipelineMap.get(j.pipelineId) ?? []
       group.push(j)
-      pipelineMap.set(j.pipelineId, group)
+      allPipelineMap.set(j.pipelineId, group)
     } else {
-      individualJobs.push(j)
+      allIndividual.push(j)
     }
   })
+
+  const searchStr = search.trim().toLowerCase()
+
+  // A pipeline group passes the filter if any of its steps match
+  const pipelineMap = new Map<string, Job[]>()
+  allPipelineMap.forEach((steps, pid) => {
+    const filtered = applyFilter(steps, filter)
+    if (filtered.length === 0) return
+    const matchesSearch = !searchStr || steps.some(j =>
+      j.id.toLowerCase().includes(searchStr) ||
+      j.queue.toLowerCase().includes(searchStr) ||
+      pid.toLowerCase().includes(searchStr)
+    )
+    if (matchesSearch) pipelineMap.set(pid, steps)  // always include full group
+  })
+
+  const individualJobs = applyFilter(allIndividual, filter).filter(j =>
+    !searchStr ||
+    j.id.toLowerCase().includes(searchStr) ||
+    j.queue.toLowerCase().includes(searchStr)
+  )
 
   const isEmpty = pipelineMap.size === 0 && individualJobs.length === 0
 
