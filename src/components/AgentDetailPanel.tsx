@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { RadialBarChart, RadialBar, PolarAngleAxis } from 'recharts'
 import type { Agent } from '../types/api'
 
@@ -45,9 +45,67 @@ function SuccessDonut({ rate }: { rate: number }) {
   )
 }
 
+type SubmitStatus = 'idle' | 'loading' | 'success' | 'error'
+
+function initEnvValues(agent: Agent): Record<string, string> {
+  const vals: Record<string, string> = {}
+  for (const v of agent.envVars ?? []) {
+    vals[v.name] = v.defaultValue ?? ''
+  }
+  return vals
+}
+
 export function AgentDetailPanel({ agent, sourceCode, onClose }: Props) {
   const [showSource, setShowSource] = useState(false)
+  const [envValues, setEnvValues] = useState<Record<string, string>>(() => initEnvValues(agent))
+  const [submitStatus, setSubmitStatus] = useState<SubmitStatus>('idle')
+  const [submitMsg, setSubmitMsg] = useState('')
   const rate = parseFloat(agent.metrics?.successRate ?? '100')
+  const hasEnvVars = (agent.envVars?.length ?? 0) > 0
+
+  useEffect(() => {
+    setEnvValues(initEnvValues(agent))
+    setSubmitStatus('idle')
+    setSubmitMsg('')
+  }, [agent.name])
+
+  async function handleRun(e: React.FormEvent) {
+    e.preventDefault()
+    const missing = (agent.envVars ?? []).filter(v => v.required && !envValues[v.name]?.trim())
+    if (missing.length > 0) {
+      setSubmitStatus('error')
+      setSubmitMsg(`Required: ${missing.map(v => v.name).join(', ')}`)
+      return
+    }
+
+    setSubmitStatus('loading')
+    setSubmitMsg('')
+
+    const env: Record<string, string> = {}
+    for (const [k, v] of Object.entries(envValues)) {
+      if (v.trim()) env[k] = v.trim()
+    }
+
+    try {
+      const res = await fetch('/api/run-agent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: `${agent.name}.kts`, queue: 'default', env }),
+      })
+      if (!res.ok) {
+        const text = await res.text()
+        setSubmitStatus('error')
+        setSubmitMsg(text || `HTTP ${res.status}`)
+      } else {
+        setSubmitStatus('success')
+        setSubmitMsg('Agent queued successfully')
+        setTimeout(() => setSubmitStatus('idle'), 3000)
+      }
+    } catch (err: unknown) {
+      setSubmitStatus('error')
+      setSubmitMsg(err instanceof Error ? err.message : 'Network error')
+    }
+  }
 
   return (
     <div className="agent-detail-panel">
@@ -152,34 +210,59 @@ export function AgentDetailPanel({ agent, sourceCode, onClose }: Props) {
           </div>
         )}
 
-        {/* ── Env Vars ── */}
-        {agent.envVars && agent.envVars.length > 0 && (
-          <div className="adp-section">
-            <div className="adp-section-title">Environment Variables</div>
-            <table className="adp-env-table">
-              <thead>
-                <tr>
-                  <th>Variable</th>
-                  <th>Required</th>
-                  <th>Description</th>
-                </tr>
-              </thead>
-              <tbody>
-                {agent.envVars.map(v => (
-                  <tr key={v.name}>
-                    <td className="adp-env-name">{v.name}</td>
-                    <td>
-                      <span className={v.required ? 'adp-required' : 'adp-optional'}>
-                        {v.required ? 'required' : 'optional'}
-                      </span>
-                    </td>
-                    <td className="adp-env-desc">{v.description}</td>
-                  </tr>
+        {/* ── Configure & Run ── */}
+        <div className="adp-section adp-run-section">
+          <div className="adp-section-title">Configure &amp; Run</div>
+          <form onSubmit={handleRun} className="adp-run-form">
+            {hasEnvVars ? (
+              <div className="adp-env-form">
+                {(agent.envVars ?? []).map(v => (
+                  <div key={v.name} className="adp-env-field">
+                    <label className="adp-env-label">
+                      <span className="adp-env-varname">{v.name}</span>
+                      {v.required
+                        ? <span className="adp-required">required</span>
+                        : <span className="adp-optional">optional</span>
+                      }
+                    </label>
+                    {v.description && (
+                      <div className="adp-env-hint">{v.description}</div>
+                    )}
+                    <input
+                      className="adp-env-input"
+                      type={
+                        v.name.toLowerCase().includes('token') || v.name.toLowerCase().includes('secret')
+                          ? 'password'
+                          : 'text'
+                      }
+                      value={envValues[v.name] ?? ''}
+                      placeholder={v.defaultValue ?? ''}
+                      onChange={e => setEnvValues(prev => ({ ...prev, [v.name]: e.target.value }))}
+                    />
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+              </div>
+            ) : (
+              <p className="adp-no-config">No configuration required — this agent runs without env vars.</p>
+            )}
+
+            <div className="adp-run-footer">
+              <button
+                type="submit"
+                className={`adp-run-btn ${submitStatus}`}
+                disabled={submitStatus === 'loading'}
+              >
+                {submitStatus === 'loading' ? '◌ Queuing…' : '▶ Run Agent'}
+              </button>
+              {submitStatus === 'success' && (
+                <span className="adp-run-feedback adp-run-ok">✓ {submitMsg}</span>
+              )}
+              {submitStatus === 'error' && (
+                <span className="adp-run-feedback adp-run-err">✗ {submitMsg}</span>
+              )}
+            </div>
+          </form>
+        </div>
 
         {/* ── Setup ── */}
         {agent.setup && agent.setup.length > 0 && (

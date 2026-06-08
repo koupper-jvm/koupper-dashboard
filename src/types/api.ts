@@ -26,6 +26,7 @@ export interface AgentEnvVar {
   name: string
   required: boolean
   description: string
+  defaultValue?: string
 }
 
 export interface AgentMetrics {
@@ -98,6 +99,43 @@ export interface HistoryEntry {
   time: string
   finishedAt: string
   result?: string | null
+}
+
+export interface RegistryAgent {
+  name: string
+  description: string
+  version: string
+  role: string
+  tags: string[]
+  persistent: boolean
+  url: string
+  skillUrl: string
+  author: string
+}
+
+export interface AgentRegistry {
+  version: number
+  source: string
+  agents: RegistryAgent[]
+}
+
+export interface QueueStats {
+  queue: string
+  pending: number
+  processing: number
+  failed: number
+  dead: number
+}
+
+export interface ClientDetail {
+  ok: boolean
+  id: string
+  displayName: string
+  queues: string[]
+  agents: string[]
+  createdAt: string | null
+  stats: QueueStats[]
+  error?: string
 }
 
 export interface LogResponse {
