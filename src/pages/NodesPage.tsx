@@ -204,8 +204,17 @@ function RunScriptInput({ node, onClose }: { node: NodeInfo; onClose: () => void
   )
 }
 
+function nodeEffectiveStatus(node: NodeInfo): 'ready' | 'stale' | 'offline' {
+  if (node.status === 'uninstalled') return 'offline'
+  if (!node.registeredAt) return 'stale'
+  const ageMs = Date.now() - new Date(node.registeredAt).getTime()
+  if (ageMs > 10 * 60 * 1000) return 'stale'
+  return 'ready'
+}
+
 function NodeCard({ node, onProvision: _onProvision }: { node: NodeInfo; onProvision: () => void }) {
-  const isReady = node.status === 'ready'
+  const effective = nodeEffectiveStatus(node)
+  const isReady = effective === 'ready'
   const isOff = node.status === 'uninstalled'
   const [showRunInput, setShowRunInput] = useState(false)
 
@@ -224,21 +233,23 @@ function NodeCard({ node, onProvision: _onProvision }: { node: NodeInfo; onProvi
     }).catch(() => {})
   }
 
+  const chipClass = effective === 'ready' ? 'chip-green' : effective === 'stale' ? 'chip-amber' : 'chip-gray'
+  const chipLabel = effective === 'ready' ? '● online' : effective === 'stale' ? '◌ stale' : '○ offline'
+  const iconColor = effective === 'ready' ? '#4ade80' : '#475569'
+
   return (
     <div className={`node-card ${isReady ? 'node-card-ready' : 'node-card-off'}`}>
       <div className="node-card-header">
-        <div className="node-card-icon" style={{ color: isReady ? '#10d68e' : '#4a5a7a' }}>
+        <div className="node-card-icon" style={{ color: iconColor }}>
           {isReady ? <Wifi size={20} strokeWidth={1.8} /> : <WifiOff size={20} strokeWidth={1.8} />}
         </div>
         <div className="node-card-info">
           <div className="node-card-host">{node.host}</div>
           <div className={`node-card-status-text ${isReady ? 'text-green' : 'text-muted'}`}>
-            {node.status}
+            {effective === 'stale' ? `last seen ${timeAgo(node.registeredAt)}` : node.status}
           </div>
         </div>
-        <span className={`node-status-chip ${isReady ? 'chip-green' : 'chip-gray'}`}>
-          {isReady ? '● online' : '○ offline'}
-        </span>
+        <span className={`node-status-chip ${chipClass}`}>{chipLabel}</span>
       </div>
 
       {!isOff && (
