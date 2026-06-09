@@ -46,8 +46,8 @@ function elapsedSince(hhmmss: string): string {
 
 function JobRow({ job }: { job: Job }) {
   const colors: Record<string, string> = {
-    PROCESSING: '#4f6ef7', DONE: '#10d68e', FAILED: '#f04455',
-    PENDING: '#f59e0b', DEAD: '#6e7681',
+    PROCESSING: '#00f2fe', DONE: '#4ade80', FAILED: '#ff007a',
+    PENDING: '#fbbf24', DEAD: '#475569',
   }
   const color = colors[job.status] ?? '#6e7681'
   const resultSnippet = job.result ? String(job.result).slice(0, 60) : null
@@ -104,17 +104,17 @@ export function OverviewPage() {
 
       {/* Metrics row */}
       <div className="ov-cards">
-        <StatusCard icon={Activity}    label="Processing"   value={metrics.processing} color="#4f6ef7"
+        <StatusCard icon={Activity}    label="Processing"   value={metrics.processing} color="#00f2fe"
           onClick={() => navigate('/jobs?filter=PROCESSING')} />
-        <StatusCard icon={Clock}       label="Pending"      value={metrics.pending}    color="#f59e0b"
+        <StatusCard icon={Clock}       label="Pending"      value={metrics.pending}    color="#fbbf24"
           onClick={() => navigate('/jobs?filter=PENDING')} />
-        <StatusCard icon={CheckCircle2}label="Done"         value={metrics.done}       color="#10d68e"
+        <StatusCard icon={CheckCircle2}label="Done"         value={metrics.done}       color="#4ade80"
           onClick={() => navigate('/jobs?filter=DONE')} />
-        <StatusCard icon={XCircle}     label="Failed"       value={metrics.failed}     color="#f04455"
+        <StatusCard icon={XCircle}     label="Failed"       value={metrics.failed}     color="#ff007a"
           onClick={() => navigate('/jobs?filter=FAILED')} />
         <StatusCard icon={Cpu}         label="Agents"       value={agents.length}      color="#a78bfa"
           onClick={() => navigate('/agents')} />
-        <StatusCard icon={Zap}         label="Nodes online" value={nodesOnline}        color="#34d399"
+        <StatusCard icon={Zap}         label="Nodes online" value={nodesOnline}        color="#4ade80"
           sub={nodes.length > 0 ? `${nodes.length} total` : undefined}
           onClick={() => navigate('/nodes')} />
       </div>

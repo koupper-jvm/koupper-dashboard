@@ -7,8 +7,8 @@ import { LogViewer } from '../components/LogViewer'
 import type { Job } from '../types/api'
 
 const STATUS_COLOR: Record<string, string> = {
-  PROCESSING: '#4f6ef7', DONE: '#10d68e', FAILED: '#f04455',
-  PENDING: '#f59e0b', DEAD: '#6e7681',
+  PROCESSING: '#00f2fe', DONE: '#4ade80', FAILED: '#ff007a',
+  PENDING: '#fbbf24', DEAD: '#475569',
 }
 
 function elapsedSince(hhmmss: string): string {

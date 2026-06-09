@@ -10,9 +10,9 @@ interface Props {
 }
 
 const TAG_COLORS: Record<string, string> = {
-  llm: '#d2a8ff', mcp: '#79c0ff', cortex: '#56d364', telegram: '#58a6ff',
-  inference: '#e3b341', bridge: '#6ee7b7', channel: '#6ee7b7', messaging: '#6ee7b7',
-  filesystem: '#ffa657', default: '#8b949e',
+  llm: '#a78bfa', mcp: '#00f2fe', cortex: '#4ade80', telegram: '#4facfe',
+  inference: '#fbbf24', bridge: '#00f2fe', channel: '#ff007a', messaging: '#ff007a',
+  filesystem: '#fbbf24', default: '#94a3b8',
 }
 
 function tagColor(tag: string) {
@@ -20,7 +20,8 @@ function tagColor(tag: string) {
 }
 
 function SuccessDonut({ rate }: { rate: number }) {
-  const data = [{ value: rate, fill: rate >= 80 ? '#56d364' : rate >= 50 ? '#e3b341' : '#f85149' }]
+  const fillColor = rate >= 80 ? '#4ade80' : rate >= 50 ? '#fbbf24' : '#ff007a'
+  const data = [{ value: rate, fill: fillColor }]
   return (
     <div style={{ position: 'relative', width: 72, height: 72 }}>
       <RadialBarChart
@@ -32,13 +33,13 @@ function SuccessDonut({ rate }: { rate: number }) {
         barSize={8}
       >
         <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
-        <RadialBar background={{ fill: '#21262d' }} dataKey="value" angleAxisId={0} cornerRadius={4} />
+        <RadialBar background={{ fill: 'rgba(255,255,255,0.05)' }} dataKey="value" angleAxisId={0} cornerRadius={4} />
       </RadialBarChart>
       <span style={{
         position: 'absolute', top: '50%', left: '50%',
         transform: 'translate(-50%,-50%)',
         fontSize: 11, fontWeight: 700,
-        color: rate >= 80 ? '#56d364' : rate >= 50 ? '#e3b341' : '#f85149',
+        color: fillColor,
       }}>
         {rate.toFixed(0)}%
       </span>
@@ -161,11 +162,11 @@ export function AgentDetailPanel({ agent, sourceCode: _sourceCode, onClose }: Pr
                   <span className="adp-metric-lbl">Total Runs</span>
                 </div>
                 <div className="adp-metric">
-                  <span className="adp-metric-val" style={{ color: '#56d364' }}>{agent.metrics.successRuns}</span>
+                  <span className="adp-metric-val" style={{ color: '#4ade80' }}>{agent.metrics.successRuns}</span>
                   <span className="adp-metric-lbl">Success</span>
                 </div>
                 <div className="adp-metric">
-                  <span className="adp-metric-val" style={{ color: '#f85149' }}>{agent.metrics.failedRuns}</span>
+                  <span className="adp-metric-val" style={{ color: '#ff007a' }}>{agent.metrics.failedRuns}</span>
                   <span className="adp-metric-lbl">Failed</span>
                 </div>
                 {agent.metrics.lastRun && (
