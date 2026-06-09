@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Search, FileText } from 'lucide-react'
+import { Search, FileText, MousePointerClick } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { useLogStream } from '../hooks/useLogStream'
 import { LogViewer } from '../components/LogViewer'
@@ -17,13 +17,12 @@ export function LogsPage() {
   return (
     <div className="page page-split">
       <div className="jobs-list-col">
-        <div className="page-header">
-          <h1 className="page-title">Logs</h1>
-        </div>
-        <div className="search-box" style={{ margin: '0 0 12px' }}>
+        <h2 className="col-title">Logs</h2>
+        <div className="search-box col-search">
           <Search size={14} />
           <input placeholder="Filter jobs…" value={filter} onChange={e => setFilter(e.target.value)} />
         </div>
+        <div className="jobs-count">{filtered.length} job{filtered.length !== 1 ? 's' : ''} matching</div>
         <div className="jobs-cards">
           {filtered.length === 0
             ? <div className="empty-state"><FileText size={20} /> No jobs</div>
@@ -47,7 +46,15 @@ export function LogsPage() {
         <div className="page-header">
           <h1 className="page-title">{selectedJob?.id ?? 'Select a job'}</h1>
         </div>
-        <LogViewer log={log} title={selectedJob?.id ?? ''} />
+        {selectedJob
+          ? <LogViewer log={log} title={selectedJob.id} />
+          : (
+            <div className="empty-state" style={{ flex: 1, flexDirection: 'column', gap: 12 }}>
+              <MousePointerClick size={32} strokeWidth={1.4} style={{ color: 'var(--muted-2)' }} />
+              <span>Select a job to view its logs</span>
+            </div>
+          )
+        }
       </div>
     </div>
   )

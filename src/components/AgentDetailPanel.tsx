@@ -56,7 +56,6 @@ function initEnvValues(agent: Agent): Record<string, string> {
 }
 
 export function AgentDetailPanel({ agent, sourceCode, onClose }: Props) {
-  const [showSource, setShowSource] = useState(false)
   const [envValues, setEnvValues] = useState<Record<string, string>>(() => initEnvValues(agent))
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>('idle')
   const [submitMsg, setSubmitMsg] = useState('')
@@ -273,16 +272,6 @@ export function AgentDetailPanel({ agent, sourceCode, onClose }: Props) {
             </ol>
           </div>
         )}
-
-        {/* ── Source toggle ── */}
-        <div className="adp-section">
-          <button className="adp-source-toggle" onClick={() => setShowSource(s => !s)}>
-            {showSource ? '▾' : '▸'} Source code
-          </button>
-          {showSource && (
-            <pre className="adp-source-code">{sourceCode}</pre>
-          )}
-        </div>
 
       </div>
     </div>

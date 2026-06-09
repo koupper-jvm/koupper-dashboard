@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Trash2, RotateCcw } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { useLogStream } from '../hooks/useLogStream'
 import { LogViewer } from '../components/LogViewer'
@@ -14,6 +15,7 @@ function JobCard({ job, selected, onClick }: {
   job: Job; selected: boolean; onClick: () => void
 }) {
   const color = STATUS_COLOR[job.status] ?? '#6e7681'
+  const resultSnippet = job.result ? String(job.result).slice(0, 80) : null
   return (
     <div className={`job-card ${selected ? 'job-card-selected' : ''}`} onClick={onClick}>
       <div className="job-card-top">
@@ -34,14 +36,24 @@ function JobCard({ job, selected, onClick }: {
           <span className="job-pipeline-label">{job.pipelineStep}/{job.pipelineTotal}</span>
         </div>
       )}
+      {resultSnippet && (
+        <div className="job-card-result">{resultSnippet}</div>
+      )}
     </div>
   )
 }
 
 export function JobsPage() {
   const { snapshot, selectedJob, setSelectedJob } = useApp()
-  const [filter, setFilter] = useState<string>('all')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [filter, setFilter] = useState<string>(() => searchParams.get('filter') ?? 'all')
   const log = useLogStream(selectedJob)
+
+  // Sync filter state when URL param changes (e.g. navigated from Overview cards)
+  useEffect(() => {
+    const param = searchParams.get('filter') ?? 'all'
+    setFilter(param)
+  }, [searchParams])
 
   const jobs = snapshot?.jobs ?? []
   const filtered = filter === 'all' ? jobs : jobs.filter(j => j.status === filter)
@@ -67,20 +79,25 @@ export function JobsPage() {
     <div className="page page-split">
       {/* Left: job list */}
       <div className="jobs-list-col">
-        <div className="page-header">
-          <h1 className="page-title">Jobs</h1>
-          <div className="jobs-filter-pills">
-            {['all','PROCESSING','PENDING','DONE','FAILED'].map(s => (
-              <button key={s}
-                className={`filter-pill ${filter === s ? 'active' : ''}`}
-                style={filter === s && s !== 'all' ? { borderColor: STATUS_COLOR[s], color: STATUS_COLOR[s] } : {}}
-                onClick={() => setFilter(s)}
-              >{s === 'all' ? 'All' : s}</button>
-            ))}
-          </div>
+        <h2 className="col-title">Jobs</h2>
+        <div className="jobs-filter-pills">
+          {['all','PROCESSING','PENDING','DONE','FAILED'].map(s => (
+            <button key={s}
+              className={`filter-pill ${filter === s ? 'active' : ''}`}
+              style={filter === s && s !== 'all' ? { borderColor: STATUS_COLOR[s], color: STATUS_COLOR[s] } : {}}
+              onClick={() => {
+                setFilter(s)
+                if (s === 'all') {
+                  setSearchParams({})
+                } else {
+                  setSearchParams({ filter: s })
+                }
+              }}
+            >{s === 'all' ? 'All' : s}</button>
+          ))}
         </div>
 
-        <div className="jobs-count">{filtered.length} job{filtered.length !== 1 ? 's' : ''}</div>
+        <div className="jobs-count" style={{ marginTop: 12 }}>{filtered.length} job{filtered.length !== 1 ? 's' : ''}</div>
 
         <div className="jobs-cards">
           {filtered.length === 0

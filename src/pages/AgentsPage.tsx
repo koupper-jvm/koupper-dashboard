@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Search, Play, Eye, Download, Star, RefreshCw, CheckCircle2 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
+import { AgentDetailPanel } from '../components/AgentDetailPanel'
+import { AgentViewer } from '../components/AgentViewer'
 import type { Agent, RegistryAgent } from '../types/api'
 
 type Tab = 'installed' | 'browse'
@@ -16,8 +18,23 @@ function RoleBadge({ role }: { role?: string }) {
   return <span className="role-badge" style={{ color, background: `${color}18`, borderColor: `${color}33` }}>{role}</span>
 }
 
+const TAG_COLORS: Record<string, string> = {
+  llm: '#d2a8ff', mcp: '#79c0ff', cortex: '#56d364', telegram: '#58a6ff',
+  inference: '#e3b341', bridge: '#6ee7b7', channel: '#6ee7b7', messaging: '#6ee7b7',
+  filesystem: '#ffa657', monitoring: '#f59e0b', webhook: '#fb923c',
+  scheduler: '#a78bfa', worker: '#60a5fa', provisioner: '#10d68e',
+  database: '#4ade80', api: '#38bdf8', voice: '#e879f9', email: '#fb7185',
+  ssh: '#94a3b8', docker: '#2dd4bf', aws: '#f97316', github: '#8b949e',
+  indexer: '#34d399', summarizer: '#60a5fa', orchestrator: '#a78bfa',
+}
+
 function TagPill({ label }: { label: string }) {
-  return <span className="tag-pill">{label}</span>
+  const color = TAG_COLORS[label.toLowerCase()] ?? '#6e7681'
+  return (
+    <span className="tag-pill" style={{ color, borderColor: `${color}55`, background: `${color}14` }}>
+      {label}
+    </span>
+  )
 }
 
 function InstalledCard({ agent, onView, onRun }: {
@@ -100,6 +117,8 @@ export function AgentsPage() {
   const [registry, setRegistry] = useState<RegistryAgent[]>([])
   const [loading, setLoading] = useState(false)
   const [installing, setInstalling] = useState<Record<string, InstallState>>({})
+  const [viewingAgent, setViewingAgent] = useState<{ agent: Agent; source: string } | null>(null)
+  const [detailTab, setDetailTab] = useState<'info' | 'code'>('info')
 
   const agents = snapshot?.agents ?? []
 
@@ -115,9 +134,11 @@ export function AgentsPage() {
 
   function handleView(name: string) {
     const clean = name.replace(/\.kts$/, '')
+    const agent = agents.find(a => a.name.replace(/\.kts$/, '') === clean)
+    if (!agent) return
     fetch(`/api/agent/${clean}`).then(r => r.json()).then(d => {
-      const w = window.open('', '_blank')
-      if (w) { w.document.write(`<pre>${d.content}</pre>`); w.document.close() }
+      setViewingAgent({ agent, source: d.content ?? '' })
+      setDetailTab('info')
     }).catch(() => {})
   }
 
@@ -171,15 +192,59 @@ export function AgentsPage() {
         </button>
       </div>
 
-      {tab === 'installed' && (
-        <div className="agents-grid">
-          {filteredInstalled.length === 0
-            ? <div className="empty-state">No agents found</div>
-            : filteredInstalled.map(a => (
-                <InstalledCard key={a.name} agent={a} onView={handleView} onRun={handleRun} />
-              ))
-          }
+      {/* Fullscreen code overlay */}
+      {viewingAgent && detailTab === 'code' && (
+        <div className="code-fullscreen">
+          <AgentViewer
+            name={viewingAgent.agent.name.replace(/\.kts$/, '')}
+            content={viewingAgent.source}
+            onClose={() => setDetailTab('info')}
+          />
         </div>
+      )}
+
+      {tab === 'installed' && (
+        viewingAgent ? (
+          <div className="agents-split">
+            <div className="agents-split-list">
+              {filteredInstalled.length === 0
+                ? <div className="empty-state">No agents found</div>
+                : filteredInstalled.map(a => (
+                    <InstalledCard key={a.name} agent={a} onView={handleView} onRun={handleRun} />
+                  ))
+              }
+            </div>
+            <div className="agents-split-detail">
+              <div className="agents-detail-tabs">
+                <button
+                  className={detailTab === 'info' ? 'active' : ''}
+                  onClick={() => setDetailTab('info')}
+                >Info</button>
+                <button
+                  className={detailTab === 'code' ? 'active' : ''}
+                  onClick={() => setDetailTab('code')}
+                >Code</button>
+                <button className="agents-detail-close" onClick={() => setViewingAgent(null)}>✕</button>
+              </div>
+              <div className="agents-split-detail-body">
+                <AgentDetailPanel
+                  agent={viewingAgent.agent}
+                  sourceCode={viewingAgent.source}
+                  onClose={() => setViewingAgent(null)}
+                />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="agents-grid">
+            {filteredInstalled.length === 0
+              ? <div className="empty-state">No agents found</div>
+              : filteredInstalled.map(a => (
+                  <InstalledCard key={a.name} agent={a} onView={handleView} onRun={handleRun} />
+                ))
+            }
+          </div>
+        )
       )}
 
       {tab === 'browse' && (

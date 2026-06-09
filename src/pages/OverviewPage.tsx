@@ -1,13 +1,17 @@
 import { Activity, CheckCircle2, Clock, XCircle, Zap, Cpu, TrendingUp } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import type { Job } from '../types/api'
 
-function StatusCard({ icon: Icon, label, value, sub, color }: {
+function StatusCard({ icon: Icon, label, value, sub, color, onClick }: {
   icon: React.ElementType; label: string; value: string | number
-  sub?: string; color: string
+  sub?: string; color: string; onClick?: () => void
 }) {
   return (
-    <div className="ov-card">
+    <div
+      className={`ov-card${onClick ? ' ov-card-clickable' : ''}`}
+      onClick={onClick}
+    >
       <div className="ov-card-icon" style={{ color, background: `${color}18` }}>
         <Icon size={20} strokeWidth={1.8} />
       </div>
@@ -26,19 +30,35 @@ function JobRow({ job }: { job: Job }) {
     PENDING: '#f59e0b', DEAD: '#6e7681',
   }
   const color = colors[job.status] ?? '#6e7681'
+  const resultSnippet = job.result ? String(job.result).slice(0, 60) : null
   return (
-    <div className="ov-job-row">
-      <span className="ov-job-dot" style={{ background: color }} />
-      <span className="ov-job-id">{job.id}</span>
-      <span className="ov-job-queue">{job.queue}</span>
-      <span className="ov-job-status" style={{ color }}>{job.status}</span>
-      <span className="ov-job-time">{job.time}</span>
+    <div className="ov-job-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 4 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <span className="ov-job-dot" style={{ background: color }} />
+        <span className="ov-job-id">{job.id}</span>
+        <span className="ov-job-queue">{job.queue}</span>
+        <span className="ov-job-status" style={{ color }}>{job.status}</span>
+        <span className="ov-job-time">{job.time}</span>
+      </div>
+      {job.pipelineTotal && (
+        <div className="job-card-pipeline" style={{ margin: '2px 20px 0' }}>
+          <div className="job-pipeline-bar">
+            <div className="job-pipeline-fill"
+              style={{ width: `${((job.pipelineStep ?? 0) / job.pipelineTotal) * 100}%`, background: color }} />
+          </div>
+          <span className="job-pipeline-label">{job.pipelineStep}/{job.pipelineTotal}</span>
+        </div>
+      )}
+      {resultSnippet && (
+        <div className="job-card-result" style={{ marginLeft: 20 }}>{resultSnippet}</div>
+      )}
     </div>
   )
 }
 
 export function OverviewPage() {
   const { snapshot, nodes } = useApp()
+  const navigate = useNavigate()
   const metrics = snapshot?.metrics ?? { pending: 0, processing: 0, done: 0, failed: 0 }
   const obs = snapshot?.observability
   const jobs = snapshot?.jobs ?? []
@@ -55,13 +75,19 @@ export function OverviewPage() {
 
       {/* Metrics row */}
       <div className="ov-cards">
-        <StatusCard icon={Activity}    label="Processing"   value={metrics.processing} color="#4f6ef7" />
-        <StatusCard icon={Clock}       label="Pending"      value={metrics.pending}    color="#f59e0b" />
-        <StatusCard icon={CheckCircle2}label="Done"         value={metrics.done}       color="#10d68e" />
-        <StatusCard icon={XCircle}     label="Failed"       value={metrics.failed}     color="#f04455" />
-        <StatusCard icon={Cpu}         label="Agents"       value={agents.length}      color="#a78bfa" />
+        <StatusCard icon={Activity}    label="Processing"   value={metrics.processing} color="#4f6ef7"
+          onClick={() => navigate('/jobs?filter=PROCESSING')} />
+        <StatusCard icon={Clock}       label="Pending"      value={metrics.pending}    color="#f59e0b"
+          onClick={() => navigate('/jobs?filter=PENDING')} />
+        <StatusCard icon={CheckCircle2}label="Done"         value={metrics.done}       color="#10d68e"
+          onClick={() => navigate('/jobs?filter=DONE')} />
+        <StatusCard icon={XCircle}     label="Failed"       value={metrics.failed}     color="#f04455"
+          onClick={() => navigate('/jobs?filter=FAILED')} />
+        <StatusCard icon={Cpu}         label="Agents"       value={agents.length}      color="#a78bfa"
+          onClick={() => navigate('/agents')} />
         <StatusCard icon={Zap}         label="Nodes online" value={nodesOnline}        color="#34d399"
-          sub={nodes.length > 0 ? `${nodes.length} total` : undefined} />
+          sub={nodes.length > 0 ? `${nodes.length} total` : undefined}
+          onClick={() => navigate('/nodes')} />
       </div>
 
       {/* Observability + Tokens */}
