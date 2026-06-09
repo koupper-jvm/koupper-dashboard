@@ -39,6 +39,7 @@ interface Props {
 }
 
 const SESSIONS_KEY = 'cortex-chat-sessions'
+const ACTIVE_KEY   = 'cortex-active-session'
 
 function loadSessions(): ChatSession[] {
   try {
@@ -50,6 +51,17 @@ function loadSessions(): ChatSession[] {
 
 function saveSessions(sessions: ChatSession[]) {
   localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions))
+}
+
+function getInitialSession(): { messages: Message[]; sessionId: string | null } {
+  try {
+    const lastId = localStorage.getItem(ACTIVE_KEY)
+    if (!lastId) return { messages: [], sessionId: null }
+    const sessions: ChatSession[] = JSON.parse(localStorage.getItem(SESSIONS_KEY) ?? '[]')
+    const found = sessions.find(s => s.id === lastId)
+    if (found) return { messages: found.messages, sessionId: lastId }
+  } catch {}
+  return { messages: [], sessionId: null }
 }
 
 function cleanLogLines(lines: string[]): string {
@@ -94,13 +106,14 @@ function cleanLogLines(lines: string[]): string {
 
 export function CortexChat({ onJobSelect, onSpeak, onStop }: Props) {
   const { voiceMuted, toggleMute: ctxToggleMute } = useApp()
-  const [messages, setMessages] = useState<Message[]>([])
+  const [{ messages: _initMsgs, sessionId: _initId }] = useState(getInitialSession)
+  const [messages, setMessages] = useState<Message[]>(_initMsgs)
   const [input, setInput]       = useState('')
   const [thinking, setThinking] = useState(false)
   const [sessions, setSessions] = useState<ChatSession[]>(loadSessions)
   const [showHistory, setShowHistory] = useState(false)
   const chatRef = useRef<HTMLDivElement>(null)
-  const currentSessionId = useRef<string | null>(null)
+  const currentSessionId = useRef<string | null>(_initId)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -146,6 +159,7 @@ export function CortexChat({ onJobSelect, onSpeak, onStop }: Props) {
         all[idx] = { ...all[idx], title, messages }
         saveSessions(all)
         setSessions([...all])
+        localStorage.setItem(ACTIVE_KEY, currentSessionId.current)
         return
       }
     }
@@ -156,11 +170,13 @@ export function CortexChat({ onJobSelect, onSpeak, onStop }: Props) {
     const updated = [newSession, ...all].slice(0, 20)
     saveSessions(updated)
     setSessions(updated)
+    localStorage.setItem(ACTIVE_KEY, id)
   }, [messages])
 
   function newChat() {
     cancelPoll()
     currentSessionId.current = null
+    localStorage.removeItem(ACTIVE_KEY)
     setMessages([])
     setThinking(false)
     setInput('')
@@ -169,6 +185,7 @@ export function CortexChat({ onJobSelect, onSpeak, onStop }: Props) {
 
   function loadSession(session: ChatSession) {
     currentSessionId.current = session.id
+    localStorage.setItem(ACTIVE_KEY, session.id)
     setMessages(session.messages)
     setThinking(false)
     setInput('')
@@ -212,7 +229,7 @@ export function CortexChat({ onJobSelect, onSpeak, onStop }: Props) {
               setThinking(false)
               setMessages(prev => [...prev, { role: 'cortex', text: response }])
               scrollDown()
-              const voiceText = stripMd(response).slice(0, 400)
+              const voiceText = stripMd(response).slice(0, 1200)
               if (voiceText) speak(voiceText)
             }
           } else {
@@ -314,7 +331,7 @@ export function CortexChat({ onJobSelect, onSpeak, onStop }: Props) {
                       className="chat-replay-btn"
                       title={voiceMuted ? 'Voz silenciada' : 'Reproducir audio'}
                       onClick={() => {
-                        const t = stripMd(m.text).slice(0, 400)
+                        const t = stripMd(m.text).slice(0, 1200)
                         if (t) speak(t)
                       }}
                     >{voiceMuted ? '🔇' : '🔊'}</button>

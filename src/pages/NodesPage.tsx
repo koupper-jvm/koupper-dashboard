@@ -278,9 +278,10 @@ function NodeCard({ node, onProvision: _onProvision }: { node: NodeInfo; onProvi
         </>
       )}
 
-      {isReady && (
+      {effective !== 'offline' && (
         <div className="node-card-actions">
-          <button className="node-action-btn" onClick={() => setShowRunInput(v => !v)}>
+          <button className="node-action-btn" onClick={() => setShowRunInput(v => !v)}
+            title={effective === 'stale' ? 'Node may be unreachable' : undefined}>
             <Play size={11} style={{ display: 'inline', marginRight: 4 }} />Run script
           </button>
           <button className="node-action-btn node-action-danger" onClick={handleUninstall}>
@@ -289,7 +290,7 @@ function NodeCard({ node, onProvision: _onProvision }: { node: NodeInfo; onProvi
         </div>
       )}
 
-      {isReady && showRunInput && (
+      {effective !== 'offline' && showRunInput && (
         <RunScriptInput node={node} onClose={() => setShowRunInput(false)} />
       )}
     </div>
