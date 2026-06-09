@@ -23,9 +23,11 @@ function Shell() {
 
   useEffect(() => {
     if (!snapshot) return
-    const providers: any[] = (snapshot as any).providers ?? []
-    const hasProvider = providers.some((p: any) => p.enabled !== false)
-    if (!hasProvider && window.location.pathname !== '/setup') navigate('/setup')
+    if (window.location.pathname === '/setup') return
+    fetch('/api/setup/status')
+      .then(r => r.json())
+      .then((s: any) => { if (!s.complete) navigate('/setup') })
+      .catch(() => {})
   }, [snapshot])
   const voiceRef = useRef<VoiceHandle>(null)
 
