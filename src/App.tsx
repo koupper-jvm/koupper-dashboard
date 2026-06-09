@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
 import { useSSE } from './hooks/useSSE'
 import { useNodes } from './hooks/useNodes'
 import { AppProvider, useApp } from './context/AppContext'
@@ -79,10 +79,8 @@ export default function App() {
   const nodes = useNodes()
 
   return (
-    <BrowserRouter>
-      <AppProvider snapshot={snapshot} nodes={nodes}>
-        <Shell />
-      </AppProvider>
-    </BrowserRouter>
+    <AppProvider snapshot={snapshot} nodes={nodes}>
+      <Shell />
+    </AppProvider>
   )
 }

@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { useApp } from '../context/AppContext'
+import AuroraRing from './AuroraRing'
 
 const NAV = [
   { to: '/',         icon: LayoutDashboard,    label: 'Overview'  },
@@ -22,12 +23,13 @@ export function Sidebar() {
     <aside className={`sidebar ${collapsed ? 'sidebar-collapsed' : ''}`}>
       {/* Logo */}
       <div className="sidebar-logo">
-        <div className="sidebar-logo-mark">
-          <span className="sidebar-logo-dot" />
-          <span className="sidebar-logo-dot" />
-          <span className="sidebar-logo-dot" />
-        </div>
-        {!collapsed && <span className="sidebar-logo-text">CORTEX</span>}
+        <AuroraRing size={collapsed ? 36 : 48} style={{ flexShrink: 0 }} />
+        {!collapsed && (
+          <div className="sidebar-logo-text-wrap">
+            <span className="sidebar-logo-text">CORTEX</span>
+            <span className="sidebar-logo-sub">SWARM MONITOR</span>
+          </div>
+        )}
       </div>
 
       {/* Nav */}
