@@ -50,7 +50,7 @@ type SubmitStatus = 'idle' | 'loading' | 'success' | 'error'
 function initEnvValues(agent: Agent): Record<string, string> {
   const vals: Record<string, string> = {}
   for (const v of agent.envVars ?? []) {
-    vals[v.name] = v.defaultValue ?? ''
+    vals[v.name] = v.currentValue ?? v.defaultValue ?? ''
   }
   return vals
 }
