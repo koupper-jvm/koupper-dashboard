@@ -44,13 +44,7 @@ function ProviderCard({
           {p.role && <span className="prov-role-badge">{p.role}</span>}
         </div>
         <div className="prov-card-header-right">
-          <span className="prov-priority-label">priority</span>
-          <input
-            className="prov-priority-input"
-            type="number" min={1} max={99}
-            value={p.priority}
-            onChange={e => onChange({ ...p, priority: parseInt(e.target.value) || 1 })}
-          />
+          <span className="prov-pos-badge">#{index + 1}</span>
           <button className="prov-move-btn" disabled={index === 0} onClick={() => onMove(-1)} title="Move up">
             <ChevronUp size={14} />
           </button>
