@@ -1338,7 +1338,8 @@ pre, code { font-family: var(--mono); }
 }
 
 /* ── Job elapsed time ──────────────────────────────────────────────────── */
-.job-card-elapsed { font-size: 10px; color: #56d364; font-weight: 600; letter-spacing: .2px; }\n.meta-label { color: #6e7681; font-size: 9px; font-weight: 400; text-transform: uppercase; letter-spacing: .4px; margin-right: 2px; }
+.job-card-elapsed { font-size: 10px; color: #56d364; font-weight: 600; letter-spacing: .2px; }
+.meta-label { color: #8b949e !important; font-size: 9px; font-weight: 400; text-transform: uppercase; letter-spacing: .4px; margin-right: 3px; }
 
 /* ── Node provision modal ──────────────────────────────────────────────── */
 .modal-overlay {
