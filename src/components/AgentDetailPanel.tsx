@@ -215,31 +215,41 @@ export function AgentDetailPanel({ agent, sourceCode, onClose }: Props) {
           <form onSubmit={handleRun} className="adp-run-form">
             {hasEnvVars ? (
               <div className="adp-env-form">
-                {(agent.envVars ?? []).map(v => (
-                  <div key={v.name} className="adp-env-field">
-                    <label className="adp-env-label">
-                      <span className="adp-env-varname">{v.name}</span>
-                      {v.required
-                        ? <span className="adp-required">required</span>
-                        : <span className="adp-optional">optional</span>
-                      }
-                    </label>
-                    {v.description && (
-                      <div className="adp-env-hint">{v.description}</div>
-                    )}
-                    <input
-                      className="adp-env-input"
-                      type={
-                        v.name.toLowerCase().includes('token') || v.name.toLowerCase().includes('secret')
-                          ? 'password'
-                          : 'text'
-                      }
-                      value={envValues[v.name] ?? ''}
-                      placeholder={v.defaultValue ?? ''}
-                      onChange={e => setEnvValues(prev => ({ ...prev, [v.name]: e.target.value }))}
-                    />
-                  </div>
-                ))}
+                {(agent.envVars ?? []).map(v => {
+                  const isSet = v.currentValue != null
+                  const isSecret = /key|secret|token|password|pass/i.test(v.name)
+                  return (
+                    <div key={v.name} className="adp-env-field">
+                      <label className="adp-env-label">
+                        <span className="adp-env-varname">{v.name}</span>
+                        {v.required
+                          ? <span className="adp-required">required</span>
+                          : <span className="adp-optional">optional</span>
+                        }
+                        {isSet
+                          ? <span className="adp-env-set">✓ set</span>
+                          : <span className="adp-env-unset">✗ not set</span>
+                        }
+                      </label>
+                      {isSet && (
+                        <div className="adp-env-current">
+                          <span className="adp-env-current-label">current:</span>
+                          <code className="adp-env-current-val">{isSecret ? v.currentValue : v.currentValue}</code>
+                        </div>
+                      )}
+                      {v.description && (
+                        <div className="adp-env-hint">{v.description}</div>
+                      )}
+                      <input
+                        className="adp-env-input"
+                        type={isSecret ? 'password' : 'text'}
+                        value={envValues[v.name] ?? ''}
+                        placeholder={v.currentValue ?? v.defaultValue ?? ''}
+                        onChange={e => setEnvValues(prev => ({ ...prev, [v.name]: e.target.value }))}
+                      />
+                    </div>
+                  )
+                })}
               </div>
             ) : (
               <p className="adp-no-config">No configuration required — this agent runs without env vars.</p>

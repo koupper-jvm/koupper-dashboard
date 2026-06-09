@@ -1132,6 +1132,11 @@ pre, code { font-family: var(--mono); }
 .adp-env-varname { font-size: 11px; color: #79c0ff; font-family: var(--mono); font-weight: 600; }
 .adp-required { color: #f85149; font-size: 9px; padding: 1px 5px; background: #2e0f0f; border-radius: 4px; }
 .adp-optional { color: #484f58; font-size: 9px; padding: 1px 5px; background: #161b22; border-radius: 4px; }
+.adp-env-set   { font-size: 9px; padding: 1px 5px; background: #0f2e18; color: #56d364; border-radius: 4px; border: 1px solid #238636; }
+.adp-env-unset { font-size: 9px; padding: 1px 5px; background: #2e0f0f; color: #f85149; border-radius: 4px; border: 1px solid #6e1b1b; }
+.adp-env-current { display: flex; align-items: center; gap: 6px; margin: 2px 0; }
+.adp-env-current-label { font-size: 9px; color: #484f58; text-transform: uppercase; letter-spacing: .5px; }
+.adp-env-current-val { font-family: var(--mono); font-size: 11px; color: #79c0ff; background: #0d1f36; padding: 1px 6px; border-radius: 3px; }
 .adp-env-hint { font-size: 10px; color: #8b949e; line-height: 1.4; }
 .adp-env-input {
   background: #0d1117; border: 1px solid #30363d; border-radius: 4px; color: #e6edf3;

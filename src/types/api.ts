@@ -27,6 +27,7 @@ export interface AgentEnvVar {
   required: boolean
   description: string
   defaultValue?: string
+  currentValue?: string | null
 }
 
 export interface AgentMetrics {
