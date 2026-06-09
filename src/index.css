@@ -245,6 +245,7 @@ pre, code { font-family: var(--mono); }
   flex-direction: column;
   flex-shrink: 0;
 }
+.chat-panel-hidden { display: none; }
 .chat-panel-header {
   height: 44px;
   display: flex;

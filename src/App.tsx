@@ -71,22 +71,20 @@ function Shell() {
         </div>
       </div>
 
-      {/* Chat panel */}
-      {chatOpen && (
-        <div className="chat-panel">
-          <div className="chat-panel-header">
-            <span className="chat-panel-title">CORTEX Chat</span>
-            <button className="chat-panel-close" onClick={() => setChatOpen(false)}>×</button>
-          </div>
-          <div className="chat-panel-body">
-            <CortexChat
-              onJobSelect={j => setSelectedJob(j)}
-              onSpeak={t => voiceRef.current?.speak(t)}
-              onStop={() => voiceRef.current?.stop()}
-            />
-          </div>
+      {/* Chat panel — always mounted so poll/state survive open/close */}
+      <div className={`chat-panel${chatOpen ? '' : ' chat-panel-hidden'}`}>
+        <div className="chat-panel-header">
+          <span className="chat-panel-title">CORTEX Chat</span>
+          <button className="chat-panel-close" onClick={() => setChatOpen(false)}>×</button>
         </div>
-      )}
+        <div className="chat-panel-body">
+          <CortexChat
+            onJobSelect={j => setSelectedJob(j)}
+            onSpeak={t => voiceRef.current?.speak(t)}
+            onStop={() => voiceRef.current?.stop()}
+          />
+        </div>
+      </div>
     </div>
   )
 }
