@@ -204,7 +204,7 @@ function RunScriptInput({ node, onClose }: { node: NodeInfo; onClose: () => void
   )
 }
 
-function NodeCard({ node, onProvision }: { node: NodeInfo; onProvision: () => void }) {
+function NodeCard({ node, onProvision: _onProvision }: { node: NodeInfo; onProvision: () => void }) {
   const isReady = node.status === 'ready'
   const isOff = node.status === 'uninstalled'
   const [showRunInput, setShowRunInput] = useState(false)

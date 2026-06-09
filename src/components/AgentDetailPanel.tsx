@@ -56,7 +56,7 @@ function initEnvValues(agent: Agent): Record<string, string> {
   return vals
 }
 
-export function AgentDetailPanel({ agent, sourceCode, onClose }: Props) {
+export function AgentDetailPanel({ agent, sourceCode: _sourceCode, onClose }: Props) {
   const navigate = useNavigate()
   const [envValues, setEnvValues] = useState<Record<string, string>>(() => initEnvValues(agent))
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>('idle')
