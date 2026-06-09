@@ -40,12 +40,21 @@ export function SetupPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [alreadyConfigured, setAlreadyConfigured] = useState<boolean | null>(null)
+  const [currentProviders, setCurrentProviders] = useState<any[]>([])
+  const [hasTelegram, setHasTelegram] = useState(false)
 
   useEffect(() => {
     fetch('/api/setup/status')
       .then(r => r.json())
-      .then((s: any) => setAlreadyConfigured(!!s.complete))
+      .then((s: any) => {
+        setAlreadyConfigured(!!s.complete)
+        setHasTelegram(!!s.hasTelegram)
+      })
       .catch(() => setAlreadyConfigured(false))
+    fetch('/api/providers')
+      .then(r => r.json())
+      .then((d: any) => setCurrentProviders(d.providers ?? []))
+      .catch(() => {})
   }, [])
 
   const [primary, setPrimary] = useState<LLMProvider>({
@@ -120,20 +129,47 @@ export function SetupPage() {
       <div className="setup-page">
         <div className="setup-orb setup-orb-1" />
         <div className="setup-orb setup-orb-2" />
-        <div className="setup-card">
-          <div className="setup-step setup-done">
+        <div className="setup-card setup-card-wide">
+          <div className="setup-step">
             <div className="setup-done-ring">✓</div>
-            <h2 className="setup-title">CORTEX ya está configurado</h2>
-            <p className="setup-subtitle">
-              Tus providers y notificaciones están activos.<br />
-              Para reconfigurar, usa el wizard abajo.
-            </p>
-            <button className="setup-btn-primary" onClick={() => navigate('/')}>
-              Ir al Dashboard <ChevronRight size={16} />
-            </button>
-            <button className="setup-skip" onClick={() => setAlreadyConfigured(false)}>
-              Reconfigurar desde cero
-            </button>
+            <h2 className="setup-title">CORTEX configurado</h2>
+            <p className="setup-subtitle">Configuración activa al momento del inicio.</p>
+
+            <div className="setup-config-section">
+              <div className="setup-config-heading">LLM Providers</div>
+              {currentProviders.length === 0 && (
+                <div className="setup-config-empty">No providers in .env — using ~/.profile</div>
+              )}
+              {currentProviders.map((p: any) => (
+                <div key={p.name} className={`setup-config-row ${p.enabled ? '' : 'disabled'}`}>
+                  <span className="setup-config-name">#{p.priority} {p.name}</span>
+                  <span className="setup-config-model">{p.model || '—'}</span>
+                  <span className="setup-config-url">{p.url || '—'}</span>
+                  <span className={`setup-config-badge ${p.enabled ? 'on' : 'off'}`}>
+                    {p.enabled ? 'enabled' : 'disabled'}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="setup-config-section">
+              <div className="setup-config-heading">Notifications</div>
+              <div className="setup-config-row">
+                <span className="setup-config-name">Telegram</span>
+                <span className={`setup-config-badge ${hasTelegram ? 'on' : 'off'}`}>
+                  {hasTelegram ? 'configured' : 'not configured'}
+                </span>
+              </div>
+            </div>
+
+            <div className="setup-nav" style={{ marginTop: 24 }}>
+              <button className="setup-btn-primary" onClick={() => navigate('/')}>
+                Ir al Dashboard <ChevronRight size={16} />
+              </button>
+              <button className="setup-btn-ghost" onClick={() => { setAlreadyConfigured(false); setStep('primary') }}>
+                Reconfigurar
+              </button>
+            </div>
           </div>
         </div>
       </div>
