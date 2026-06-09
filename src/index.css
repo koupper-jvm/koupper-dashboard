@@ -725,7 +725,8 @@ pre, code { font-family: var(--mono); }
 }
 .node-card:hover { transform: translateY(-1px); }
 .node-card-ready { border-color: rgba(74,222,128,0.15); }
-.node-card-off   { opacity: 0.5; }
+.node-card-stale { border-color: rgba(251,191,36,0.15); }
+.node-card-off   { opacity: 0.45; filter: grayscale(0.3); }
 .node-card-add {
   border: 1px dashed var(--border); cursor: pointer;
   align-items: center; justify-content: center;
@@ -1572,7 +1573,16 @@ pre, code { font-family: var(--mono); }
   border-color: var(--border-2); color: var(--text);
 }
 .node-action-btn:disabled { opacity: 0.4; cursor: default; }
-.node-action-danger:hover { border-color: var(--accent-2) !important; color: var(--accent-2) !important; }
+.node-action-danger:hover  { border-color: var(--accent-2) !important; color: var(--accent-2) !important; }
+.node-action-primary {
+  background: rgba(251,191,36,0.08) !important;
+  border-color: rgba(251,191,36,0.3) !important;
+  color: var(--yellow) !important;
+}
+.node-action-primary:hover:not(:disabled) {
+  background: rgba(251,191,36,0.15) !important;
+  border-color: rgba(251,191,36,0.5) !important;
+}
 
 /* Stale chip */
 .chip-amber {

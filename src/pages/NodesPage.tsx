@@ -215,30 +215,42 @@ function nodeEffectiveStatus(node: NodeInfo): 'ready' | 'stale' | 'offline' {
 function NodeCard({ node, onProvision: _onProvision }: { node: NodeInfo; onProvision: () => void }) {
   const effective = nodeEffectiveStatus(node)
   const isReady = effective === 'ready'
-  const isOff = node.status === 'uninstalled'
+  const isOff   = node.status === 'uninstalled'
+  const isStale = effective === 'stale'
   const [showRunInput, setShowRunInput] = useState(false)
+  const [reconnecting, setReconnecting] = useState(false)
 
   async function handleUninstall() {
     await fetch('/api/run-agent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        name: 'NodeProvisionerAgent',
-        queue: 'default',
-        env: {
-          NODE_HOST: node.host,
-          NODE_ACTION: 'uninstall',
-        },
+        name: 'NodeProvisionerAgent', queue: 'default',
+        env: { NODE_HOST: node.host, NODE_ACTION: 'uninstall' },
       }),
     }).catch(() => {})
   }
 
-  const chipClass = effective === 'ready' ? 'chip-green' : effective === 'stale' ? 'chip-amber' : 'chip-gray'
-  const chipLabel = effective === 'ready' ? '● online' : effective === 'stale' ? '◌ stale' : '○ offline'
-  const iconColor = effective === 'ready' ? '#4ade80' : '#475569'
+  async function handleReconnect() {
+    setReconnecting(true)
+    await fetch('/api/run-agent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'NodeProvisionerAgent', queue: 'default',
+        env: { NODE_HOST: node.host, NODE_ACTION: 'restart' },
+      }),
+    }).catch(() => {})
+    setTimeout(() => setReconnecting(false), 4000)
+  }
+
+  const cardClass = isReady ? 'node-card-ready' : isStale ? 'node-card-stale' : 'node-card-off'
+  const chipClass = isReady ? 'chip-green' : isStale ? 'chip-amber' : 'chip-gray'
+  const chipLabel = isReady ? '● online'   : isStale ? '◌ stale'   : '○ offline'
+  const iconColor = isReady ? '#4ade80'    : isStale ? '#fbbf24'    : '#475569'
 
   return (
-    <div className={`node-card ${isReady ? 'node-card-ready' : 'node-card-off'}`}>
+    <div className={`node-card ${cardClass}`}>
       <div className="node-card-header">
         <div className="node-card-icon" style={{ color: iconColor }}>
           {isReady ? <Wifi size={20} strokeWidth={1.8} /> : <WifiOff size={20} strokeWidth={1.8} />}
@@ -246,7 +258,7 @@ function NodeCard({ node, onProvision: _onProvision }: { node: NodeInfo; onProvi
         <div className="node-card-info">
           <div className="node-card-host">{node.host}</div>
           <div className={`node-card-status-text ${isReady ? 'text-green' : 'text-muted'}`}>
-            {effective === 'stale' ? `last seen ${timeAgo(node.registeredAt)}` : node.status}
+            {isStale ? `last seen ${timeAgo(node.registeredAt)}` : node.status}
           </div>
         </div>
         <span className={`node-status-chip ${chipClass}`}>{chipLabel}</span>
@@ -271,19 +283,27 @@ function NodeCard({ node, onProvision: _onProvision }: { node: NodeInfo; onProvi
             {node.registeredAt && (
               <div className="node-meta-row">
                 <Clock size={13} />
-                <span>Registered {timeAgo(node.registeredAt)}</span>
+                <span>Last seen {timeAgo(node.registeredAt)}</span>
               </div>
             )}
           </div>
         </>
       )}
 
-      {effective !== 'offline' && (
+      {!isOff && (
         <div className="node-card-actions">
-          <button className="node-action-btn" onClick={() => setShowRunInput(v => !v)}
-            title={effective === 'stale' ? 'Node may be unreachable' : undefined}>
-            <Play size={11} style={{ display: 'inline', marginRight: 4 }} />Run script
-          </button>
+          {isStale && (
+            <button className="node-action-btn node-action-primary" onClick={handleReconnect}
+              disabled={reconnecting}>
+              <Wifi size={11} style={{ display: 'inline', marginRight: 4 }} />
+              {reconnecting ? 'Connecting…' : 'Reconnect'}
+            </button>
+          )}
+          {isReady && (
+            <button className="node-action-btn" onClick={() => setShowRunInput(v => !v)}>
+              <Play size={11} style={{ display: 'inline', marginRight: 4 }} />Run script
+            </button>
+          )}
           <button className="node-action-btn node-action-danger" onClick={handleUninstall}>
             <Trash2 size={11} style={{ display: 'inline', marginRight: 4 }} />Uninstall
           </button>
