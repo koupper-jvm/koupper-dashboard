@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, BriefcaseBusiness, Bot, Network,
   CalendarDays, Terminal, MessageSquareCode, ChevronLeft, ChevronRight,
-  Cpu,
+  Cpu, Settings,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useApp } from '../context/AppContext'
@@ -49,6 +49,13 @@ export function Sidebar() {
           </NavLink>
         ))}
       </nav>
+
+      {/* Setup link */}
+      <NavLink to="/setup" className={({ isActive }) => `sidebar-item ${isActive ? 'active' : ''}`}
+        title={collapsed ? 'Setup' : undefined}>
+        <Settings size={18} strokeWidth={1.8} />
+        {!collapsed && <span>Setup</span>}
+      </NavLink>
 
       {/* Bottom actions */}
       <div className="sidebar-bottom">

@@ -1,5 +1,5 @@
-import { useRef } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { useRef, useEffect } from 'react'
+import { Routes, Route, useNavigate } from 'react-router-dom'
 import { useSSE } from './hooks/useSSE'
 import { useNodes } from './hooks/useNodes'
 import { AppProvider, useApp } from './context/AppContext'
@@ -14,10 +14,19 @@ import { NodesPage }     from './pages/NodesPage'
 import { CalendarPage }  from './pages/CalendarPage'
 import { LogsPage }      from './pages/LogsPage'
 import { ProvidersPage } from './pages/ProvidersPage'
+import { SetupPage }     from './pages/SetupPage'
 import './index.css'
 
 function Shell() {
   const { snapshot, chatOpen, setChatOpen, setSelectedJob, voiceMuted, toggleMute } = useApp()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (!snapshot) return
+    const providers: any[] = (snapshot as any).providers ?? []
+    const hasProvider = providers.some((p: any) => p.enabled !== false)
+    if (!hasProvider && window.location.pathname !== '/setup') navigate('/setup')
+  }, [snapshot])
   const voiceRef = useRef<VoiceHandle>(null)
 
   function handleToggleMute() {
@@ -67,6 +76,7 @@ function Shell() {
             <Route path="/providers" element={<ProvidersPage />} />
             <Route path="/calendar"  element={<CalendarPage />} />
             <Route path="/logs"     element={<LogsPage />} />
+            <Route path="/setup"    element={<SetupPage />} />
           </Routes>
         </div>
       </div>
