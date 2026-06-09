@@ -1327,3 +1327,75 @@ pre, code { font-family: var(--mono); }
 }
 .ov-card-clickable { cursor: pointer; }
 .ov-card-clickable:hover { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent-dim); }
+
+/* ── Page descriptions ─────────────────────────────────────────────────── */
+.page-desc {
+  font-size: 12px; color: var(--muted); margin: -16px 0 20px;
+  line-height: 1.5; max-width: 600px;
+}
+.col-desc {
+  font-size: 11px; color: var(--muted); margin: -10px 0 14px; line-height: 1.5;
+}
+
+/* ── Job elapsed time ──────────────────────────────────────────────────── */
+.job-card-elapsed { font-size: 10px; color: #56d364; font-weight: 600; letter-spacing: .2px; }
+
+/* ── Node provision modal ──────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 8000;
+  background: #00000088; display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(4px);
+}
+.modal-box {
+  background: #161b22; border: 1px solid #30363d; border-radius: 10px;
+  width: 480px; max-width: 96vw; max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 24px 64px #0008;
+}
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid #21262d;
+}
+.modal-title { font-size: 14px; font-weight: 700; color: var(--text); }
+.modal-body  { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+.modal-footer { padding: 14px 20px; border-top: 1px solid #21262d; display: flex; gap: 10px; justify-content: flex-end; }
+.modal-field { display: flex; flex-direction: column; gap: 5px; }
+.modal-row   { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.modal-label { font-size: 11px; color: #8b949e; font-weight: 600; }
+.modal-input {
+  background: #0d1117; border: 1px solid #30363d; border-radius: 5px;
+  color: var(--text); font-size: 12px; padding: 7px 10px; outline: none;
+  font-family: var(--font); transition: border-color .15s;
+}
+.modal-input:focus { border-color: var(--accent); }
+.modal-submit { background: #238636; border: 1px solid #2ea043; color: #fff; font-size: 12px; font-weight: 600; padding: 7px 18px; border-radius: 5px; cursor: pointer; font-family: var(--font); }
+.modal-submit:hover { background: #2ea043; }
+.modal-submit:disabled { opacity: .5; cursor: default; }
+.modal-cancel { background: #21262d; border: 1px solid #30363d; color: #c9d1d9; font-size: 12px; padding: 7px 14px; border-radius: 5px; cursor: pointer; font-family: var(--font); }
+.modal-cancel:hover { background: #30363d; }
+.modal-toast {
+  margin: 0 20px 16px; padding: 10px 14px; background: #0f2e18;
+  border: 1px solid #238636; border-radius: 6px; color: #56d364; font-size: 12px;
+}
+
+/* ── Node card actions ─────────────────────────────────────────────────── */
+.node-card-actions { display: flex; gap: 8px; padding-top: 10px; margin-top: 6px; border-top: 1px solid #21262d; }
+.node-action-btn {
+  font-size: 11px; padding: 4px 10px; border-radius: 4px;
+  background: #21262d; border: 1px solid #30363d; color: #c9d1d9;
+  cursor: pointer; font-family: inherit; transition: all .12s;
+}
+.node-action-btn:hover { background: #30363d; }
+.node-action-danger:hover { border-color: #f85149; color: #f85149; }
+
+/* ── Nodes arch section ────────────────────────────────────────────────── */
+.nodes-arch-section {
+  margin-top: 32px; padding: 20px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 8px;
+}
+.nodes-arch-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+.nodes-arch-body  { display: flex; flex-direction: column; gap: 12px; }
+.nodes-arch-item  { display: flex; gap: 12px; align-items: flex-start; }
+.nodes-arch-icon  { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.nodes-arch-item div { font-size: 12px; color: #8b949e; line-height: 1.6; }
+.nodes-arch-item strong { color: var(--text); }
+.nodes-arch-item code { font-family: var(--mono); font-size: 11px; color: #79c0ff; background: #0d1f36; padding: 1px 5px; border-radius: 3px; }

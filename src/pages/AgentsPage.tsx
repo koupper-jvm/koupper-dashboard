@@ -178,10 +178,15 @@ export function AgentsPage() {
         <h1 className="page-title">Agents</h1>
         <div className="search-box">
           <Search size={15} />
-          <input placeholder="Search agents…" value={query} onChange={e => setQuery(e.target.value)} />
+          <input
+            placeholder={tab === 'installed' ? `Search ${agents.length} installed agents…` : 'Search marketplace…'}
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+          />
           {query && <button onClick={() => setQuery('')}>×</button>}
         </div>
       </div>
+      <p className="page-desc">Automate tasks with installed agents or discover new ones in the marketplace.</p>
 
       <div className="tab-bar">
         <button className={`tab-btn ${tab === 'installed' ? 'active' : ''}`} onClick={() => setTab('installed')}>

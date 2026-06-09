@@ -24,6 +24,26 @@ function StatusCard({ icon: Icon, label, value, sub, color, onClick }: {
   )
 }
 
+function elapsedSince(hhmmss: string): string {
+  try {
+    const [hh, mm, ss] = hhmmss.split(':').map(Number)
+    if ([hh, mm, ss].some(isNaN)) return ''
+    const now = new Date()
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, ss)
+    const diffMs = now.getTime() - start.getTime()
+    if (diffMs < 0) return ''
+    const totalSec = Math.floor(diffMs / 1000)
+    const totalMin = Math.floor(totalSec / 60)
+    const sec = totalSec % 60
+    if (totalMin < 60) return `${totalMin}m ${sec}s`
+    const hrs = Math.floor(totalMin / 60)
+    const mins = totalMin % 60
+    return `${hrs}h ${mins}m`
+  } catch {
+    return ''
+  }
+}
+
 function JobRow({ job }: { job: Job }) {
   const colors: Record<string, string> = {
     PROCESSING: '#4f6ef7', DONE: '#10d68e', FAILED: '#f04455',
@@ -31,6 +51,7 @@ function JobRow({ job }: { job: Job }) {
   }
   const color = colors[job.status] ?? '#6e7681'
   const resultSnippet = job.result ? String(job.result).slice(0, 60) : null
+  const elapsed = elapsedSince(job.time)
   return (
     <div className="ov-job-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 4 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -39,6 +60,9 @@ function JobRow({ job }: { job: Job }) {
         <span className="ov-job-queue">{job.queue}</span>
         <span className="ov-job-status" style={{ color }}>{job.status}</span>
         <span className="ov-job-time">{job.time}</span>
+        {job.status === 'PROCESSING' && elapsed && (
+          <span className="job-card-elapsed">⏱ {elapsed}</span>
+        )}
       </div>
       {job.pipelineTotal && (
         <div className="job-card-pipeline" style={{ margin: '2px 20px 0' }}>
@@ -72,6 +96,7 @@ export function OverviewPage() {
         <h1 className="page-title">Overview</h1>
         <div className="page-time">{snapshot?.time ?? '—'}</div>
       </div>
+      <p className="page-desc">Real-time snapshot of your CORTEX swarm — active jobs, agent health, and system throughput.</p>
 
       {/* Metrics row */}
       <div className="ov-cards">

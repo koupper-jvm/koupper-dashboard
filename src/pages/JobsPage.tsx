@@ -11,6 +11,26 @@ const STATUS_COLOR: Record<string, string> = {
   PENDING: '#f59e0b', DEAD: '#6e7681',
 }
 
+function elapsedSince(hhmmss: string): string {
+  try {
+    const [hh, mm, ss] = hhmmss.split(':').map(Number)
+    if ([hh, mm, ss].some(isNaN)) return ''
+    const now = new Date()
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, ss)
+    const diffMs = now.getTime() - start.getTime()
+    if (diffMs < 0) return ''
+    const totalSec = Math.floor(diffMs / 1000)
+    const totalMin = Math.floor(totalSec / 60)
+    const sec = totalSec % 60
+    if (totalMin < 60) return `${totalMin}m ${sec}s`
+    const hrs = Math.floor(totalMin / 60)
+    const mins = totalMin % 60
+    return `${hrs}h ${mins}m`
+  } catch {
+    return ''
+  }
+}
+
 function JobCard({ job, selected, onClick }: {
   job: Job; selected: boolean; onClick: () => void
 }) {
@@ -24,8 +44,11 @@ function JobCard({ job, selected, onClick }: {
         <span className="job-card-status" style={{ color }}>{job.status}</span>
       </div>
       <div className="job-card-meta">
-        <span className="job-card-queue">{job.queue}</span>
-        <span className="job-card-time">{job.time}</span>
+        <span className="job-card-queue">⬡ {job.queue}</span>
+        <span className="job-card-time">🕐 {job.time}</span>
+        {job.status === 'PROCESSING' && elapsedSince(job.time) && (
+          <span className="job-card-elapsed">⏱ {elapsedSince(job.time)}</span>
+        )}
       </div>
       {job.pipelineTotal && (
         <div className="job-card-pipeline">
@@ -80,6 +103,7 @@ export function JobsPage() {
       {/* Left: job list */}
       <div className="jobs-list-col">
         <h2 className="col-title">Jobs</h2>
+        <p className="col-desc">Job execution queue across all agents.</p>
         <div className="jobs-filter-pills">
           {['all','PROCESSING','PENDING','DONE','FAILED'].map(s => (
             <button key={s}

@@ -131,6 +131,7 @@ export function CalendarPage() {
     <div className="page page-calendar">
       <div className="page-header">
         <h1 className="page-title">Calendar</h1>
+        <p className="page-desc">Scheduled and recurring jobs managed by CORTEX.</p>
         <div className="cal-nav">
           <button className="icon-btn" onClick={() => setWeekOffset(v => v - 1)}><ChevronLeft size={16} /></button>
           <span className="cal-range">{fmt(weekStart)} — {fmt(weekEnd)}, {weekStart.getFullYear()}</span>

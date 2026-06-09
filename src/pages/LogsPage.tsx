@@ -18,6 +18,7 @@ export function LogsPage() {
     <div className="page page-split">
       <div className="jobs-list-col">
         <h2 className="col-title">Logs</h2>
+        <p className="col-desc">Execution logs for each job.</p>
         <div className="search-box col-search">
           <Search size={14} />
           <input placeholder="Filter jobs…" value={filter} onChange={e => setFilter(e.target.value)} />
