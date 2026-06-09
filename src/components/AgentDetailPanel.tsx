@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { RadialBarChart, RadialBar, PolarAngleAxis } from 'recharts'
 import type { Agent } from '../types/api'
 
@@ -56,6 +57,7 @@ function initEnvValues(agent: Agent): Record<string, string> {
 }
 
 export function AgentDetailPanel({ agent, sourceCode, onClose }: Props) {
+  const navigate = useNavigate()
   const [envValues, setEnvValues] = useState<Record<string, string>>(() => initEnvValues(agent))
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>('idle')
   const [submitMsg, setSubmitMsg] = useState('')
@@ -216,8 +218,35 @@ export function AgentDetailPanel({ agent, sourceCode, onClose }: Props) {
             {hasEnvVars ? (
               <div className="adp-env-form">
                 {(agent.envVars ?? []).map(v => {
+                  const isTemplate = v.name.includes('<') || v.name.includes('*')
                   const isSet = v.currentValue != null
                   const isSecret = /key|secret|token|password|pass/i.test(v.name)
+                  if (isTemplate) {
+                    return (
+                      <div key={v.name} className="adp-env-field adp-env-field-template">
+                        <label className="adp-env-label">
+                          <span className="adp-env-varname">{v.name}</span>
+                          <span className="adp-env-template-badge">system env</span>
+                          {isSet
+                            ? <span className="adp-env-set">✓ set</span>
+                            : <span className="adp-env-unset">✗ not set</span>
+                          }
+                        </label>
+                        {v.description && <div className="adp-env-hint">{v.description}</div>}
+                        {isSet && (
+                          <div className="adp-env-template-vals">
+                            {v.currentValue!.split('  |  ').map(entry => (
+                              <code key={entry} className="adp-env-template-chip">{entry}</code>
+                            ))}
+                          </div>
+                        )}
+                        <button type="button" className="adp-env-providers-link"
+                          onClick={() => { onClose(); navigate('/providers') }}>
+                          Configure in Providers →
+                        </button>
+                      </div>
+                    )
+                  }
                   return (
                     <div key={v.name} className="adp-env-field">
                       <label className="adp-env-label">
@@ -234,7 +263,7 @@ export function AgentDetailPanel({ agent, sourceCode, onClose }: Props) {
                       {isSet && (
                         <div className="adp-env-current">
                           <span className="adp-env-current-label">current:</span>
-                          <code className="adp-env-current-val">{isSecret ? v.currentValue : v.currentValue}</code>
+                          <code className="adp-env-current-val">{v.currentValue}</code>
                         </div>
                       )}
                       {v.description && (

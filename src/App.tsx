@@ -13,6 +13,7 @@ import { AgentsPage }    from './pages/AgentsPage'
 import { NodesPage }     from './pages/NodesPage'
 import { CalendarPage }  from './pages/CalendarPage'
 import { LogsPage }      from './pages/LogsPage'
+import { ProvidersPage } from './pages/ProvidersPage'
 import './index.css'
 
 function Shell() {
@@ -62,8 +63,9 @@ function Shell() {
             <Route path="/"         element={<OverviewPage />} />
             <Route path="/jobs"     element={<JobsPage />} />
             <Route path="/agents"   element={<AgentsPage />} />
-            <Route path="/nodes"    element={<NodesPage />} />
-            <Route path="/calendar" element={<CalendarPage />} />
+            <Route path="/nodes"     element={<NodesPage />} />
+            <Route path="/providers" element={<ProvidersPage />} />
+            <Route path="/calendar"  element={<CalendarPage />} />
             <Route path="/logs"     element={<LogsPage />} />
           </Routes>
         </div>

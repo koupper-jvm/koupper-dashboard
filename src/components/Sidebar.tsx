@@ -2,18 +2,20 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, BriefcaseBusiness, Bot, Network,
   CalendarDays, Terminal, MessageSquareCode, ChevronLeft, ChevronRight,
+  Cpu,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useApp } from '../context/AppContext'
 import AuroraRing from './AuroraRing'
 
 const NAV = [
-  { to: '/',         icon: LayoutDashboard,    label: 'Overview'  },
-  { to: '/jobs',     icon: BriefcaseBusiness,  label: 'Jobs'      },
-  { to: '/agents',   icon: Bot,                label: 'Agents'    },
-  { to: '/nodes',    icon: Network,            label: 'Nodes'     },
-  { to: '/calendar', icon: CalendarDays,       label: 'Calendar'  },
-  { to: '/logs',     icon: Terminal,           label: 'Logs'      },
+  { to: '/',          icon: LayoutDashboard,   label: 'Overview'  },
+  { to: '/jobs',      icon: BriefcaseBusiness, label: 'Jobs'      },
+  { to: '/agents',    icon: Bot,               label: 'Agents'    },
+  { to: '/nodes',     icon: Network,           label: 'Nodes'     },
+  { to: '/providers', icon: Cpu,               label: 'Providers' },
+  { to: '/calendar',  icon: CalendarDays,      label: 'Calendar'  },
+  { to: '/logs',      icon: Terminal,          label: 'Logs'      },
 ]
 
 export function Sidebar() {

@@ -1399,3 +1399,85 @@ pre, code { font-family: var(--mono); }
 .nodes-arch-item div { font-size: 12px; color: #8b949e; line-height: 1.6; }
 .nodes-arch-item strong { color: var(--text); }
 .nodes-arch-item code { font-family: var(--mono); font-size: 11px; color: #79c0ff; background: #0d1f36; padding: 1px 5px; border-radius: 3px; }
+
+/* ── Providers page ────────────────────────────────────────────────────── */
+.prov-header-actions { display: flex; gap: 8px; align-items: center; }
+.prov-save-btn { display: flex; align-items: center; gap: 6px; min-width: 80px; justify-content: center; }
+.prov-save-btn.saved { background: #1a4731; border-color: #238636; color: #56d364; }
+.prov-save-btn.error { background: #3d1a1a; border-color: #f85149; color: #f85149; }
+.prov-env-path { font-family: var(--mono); font-size: 11px; color: #79c0ff; background: #0d1f36; padding: 1px 5px; border-radius: 3px; }
+
+.prov-list { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
+
+.prov-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+  padding: 14px 16px; transition: border-color .15s;
+}
+.prov-card:hover { border-color: var(--border-2); }
+.prov-card-disabled { opacity: .55; }
+
+.prov-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.prov-card-header-left  { display: flex; align-items: center; gap: 10px; }
+.prov-card-header-right { display: flex; align-items: center; gap: 6px; }
+
+.prov-toggle { font-size: 16px; border: none; background: transparent; cursor: pointer; padding: 0; line-height: 1; transition: color .12s; }
+.prov-toggle-on  { color: #56d364; }
+.prov-toggle-off { color: #484f58; }
+.prov-name { font-size: 13px; font-weight: 700; color: var(--text); font-family: var(--mono); letter-spacing: .5px; }
+.prov-role-badge { font-size: 10px; padding: 2px 7px; border-radius: 10px; background: #1e2a3e; color: #79c0ff; border: 1px solid #2a3d5a; }
+
+.prov-priority-label { font-size: 10px; color: var(--muted); }
+.prov-priority-input {
+  width: 44px; text-align: center; background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 4px; color: var(--text); font-size: 12px; padding: 3px 5px;
+  font-family: var(--mono);
+}
+.prov-move-btn {
+  padding: 3px 5px; border: 1px solid var(--border); border-radius: 4px;
+  background: var(--surface-2); color: var(--muted); cursor: pointer; display: flex; align-items: center;
+}
+.prov-move-btn:hover:not(:disabled) { background: var(--surface); color: var(--text); }
+.prov-move-btn:disabled { opacity: .3; cursor: default; }
+.prov-delete-btn {
+  padding: 3px 6px; border: 1px solid transparent; border-radius: 4px;
+  background: transparent; color: #484f58; cursor: pointer; display: flex; align-items: center;
+  transition: all .12s;
+}
+.prov-delete-btn:hover { background: #3d1a1a; border-color: #f85149; color: #f85149; }
+
+.prov-fields { display: flex; flex-direction: column; gap: 10px; }
+.prov-field { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.prov-field label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+.prov-field-row { flex-direction: row; gap: 12px; align-items: flex-end; }
+.prov-field-checkbox { justify-content: flex-end; padding-bottom: 2px; }
+.prov-field-checkbox label { flex-direction: row; align-items: center; gap: 6px; text-transform: none; font-size: 12px; color: var(--text); cursor: pointer; }
+.prov-field-checkbox input[type=checkbox] { accent-color: var(--accent); width: 13px; height: 13px; }
+
+.prov-input, .prov-select {
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 5px;
+  color: var(--text); font-size: 12px; padding: 6px 9px; font-family: var(--font);
+  transition: border-color .15s; outline: none;
+}
+.prov-input:focus, .prov-select:focus { border-color: var(--accent); }
+.prov-select { appearance: none; cursor: pointer; padding-right: 24px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238b949e'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; }
+
+.prov-secret-row { display: flex; gap: 6px; }
+.prov-secret-row .prov-input { flex: 1; }
+.prov-show-btn { font-size: 11px; padding: 0 10px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); border-radius: 5px; cursor: pointer; white-space: nowrap; }
+.prov-show-btn:hover { color: var(--text); }
+
+.prov-unsaved-bar {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: #1e2d1e; border: 1px solid #238636; border-radius: 8px;
+  padding: 10px 20px; font-size: 12px; color: #56d364; display: flex; gap: 12px; align-items: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,.5);
+}
+.prov-unsaved-bar button { color: #79c0ff; background: none; border: none; cursor: pointer; font-size: 12px; font-family: inherit; }
+
+/* ── AgentDetailPanel template var fields ──────────────────────────────── */
+.adp-env-field-template { background: var(--surface); border-radius: 6px; padding: 10px 12px; border: 1px dashed var(--border); }
+.adp-env-template-badge { font-size: 10px; padding: 2px 6px; border-radius: 10px; background: #1e2a3e; color: #79c0ff; border: 1px solid #2a3d5a; }
+.adp-env-template-vals { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0 8px; }
+.adp-env-template-chip { font-family: var(--mono); font-size: 10px; background: var(--card); border: 1px solid var(--border-2); border-radius: 4px; padding: 2px 7px; color: #8b949e; }
+.adp-env-providers-link { font-size: 11px; color: var(--accent); background: none; border: none; cursor: pointer; padding: 0; font-family: inherit; opacity: .8; }
+.adp-env-providers-link:hover { opacity: 1; text-decoration: underline; }
