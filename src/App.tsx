@@ -16,9 +16,17 @@ import { LogsPage }      from './pages/LogsPage'
 import './index.css'
 
 function Shell() {
-  const { snapshot } = useApp()
-  const { chatOpen, setChatOpen, setSelectedJob } = useApp()
+  const { snapshot, chatOpen, setChatOpen, setSelectedJob, voiceMuted, toggleMute } = useApp()
   const voiceRef = useRef<VoiceHandle>(null)
+
+  function handleToggleMute() {
+    if (voiceMuted) {
+      // Unmuting — stop any playing audio
+    } else {
+      voiceRef.current?.stop?.()
+    }
+    toggleMute()
+  }
 
   return (
     <div className="shell">
@@ -36,7 +44,14 @@ function Shell() {
             )}
           </div>
           <div className="topbar-right">
-            <VoiceWave ref={voiceRef} />
+            <button
+              className={`topbar-mute-btn ${voiceMuted ? 'muted' : ''}`}
+              onClick={handleToggleMute}
+              title={voiceMuted ? 'Voice muted — click to enable' : 'Click to mute voice'}
+            >
+              {voiceMuted ? '🔇' : '🔊'}
+            </button>
+            <VoiceWave ref={voiceRef} greeting="CORTEX en línea." />
             <span className="topbar-time">{snapshot?.time ?? '—'}</span>
           </div>
         </div>

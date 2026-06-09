@@ -166,6 +166,14 @@ pre, code { font-family: var(--mono); }
   padding: 2px 8px;
 }
 .topbar-time { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+.topbar-mute-btn {
+  font-size: 16px; padding: 2px 6px; border-radius: 6px;
+  background: none; opacity: 0.7;
+  transition: opacity 0.15s, background 0.15s;
+  cursor: pointer;
+}
+.topbar-mute-btn:hover { opacity: 1; background: var(--surface-2); }
+.topbar-mute-btn.muted { opacity: 0.4; }
 
 /* ── Chat panel ─────────────────────────────────────────────────────────── */
 .chat-panel {

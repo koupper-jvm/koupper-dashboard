@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from 'react'
+import { useApp } from '../context/AppContext'
 
 interface Message {
   role: 'user' | 'cortex'
@@ -72,15 +73,13 @@ function cleanLogLines(lines: string[]): string {
   return result.join('\n').replace(/\n{3,}/g, '\n\n').trim()
 }
 
-const VOICE_MUTED_KEY = 'cortex-voice-muted'
-
 export function CortexChat({ onJobSelect, onSpeak, onStop }: Props) {
+  const { voiceMuted, toggleMute: ctxToggleMute } = useApp()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput]       = useState('')
   const [thinking, setThinking] = useState(false)
   const [sessions, setSessions] = useState<ChatSession[]>(loadSessions)
   const [showHistory, setShowHistory] = useState(false)
-  const [voiceMuted, setVoiceMuted]   = useState(() => localStorage.getItem(VOICE_MUTED_KEY) === 'true')
   const chatRef = useRef<HTMLDivElement>(null)
   const currentSessionId = useRef<string | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -99,12 +98,8 @@ export function CortexChat({ onJobSelect, onSpeak, onStop }: Props) {
   }
 
   function toggleMute() {
-    setVoiceMuted(prev => {
-      const next = !prev
-      localStorage.setItem(VOICE_MUTED_KEY, String(next))
-      if (next) onStop?.()   // silencia el audio en curso al mutar
-      return next
-    })
+    if (!voiceMuted) onStop?.()  // silencia audio en curso al mutar
+    ctxToggleMute()
   }
 
   function speak(text: string) {
