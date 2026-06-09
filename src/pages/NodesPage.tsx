@@ -367,19 +367,31 @@ export function NodesPage() {
 
           {/* Architecture explanation */}
           <div className="nodes-arch-section">
-            <div className="nodes-arch-title">How remote execution works</div>
+            <div className="nodes-arch-title">How edge nodes work</div>
             <div className="nodes-arch-body">
               <div className="nodes-arch-item">
                 <span className="nodes-arch-icon">⬡</span>
-                <div><strong>Provision</strong> — NodeProvisionerAgent connects via SSH, uploads the koupper JARs (~300MB) to the node, and starts the daemon on port 9998.</div>
+                <div>
+                  <strong>Provisioning</strong> — Asks CORTEX to run <code>NodeProvisionerAgent</code> with the target IP. The agent connects via SSH, uploads koupper (~300MB) and starts the daemon on port 9998. Once up, the node calls back to CORTEX and appears here as <em>online</em>.
+                </div>
               </div>
               <div className="nodes-arch-item">
                 <span className="nodes-arch-icon">⚡</span>
-                <div><strong>Execute</strong> — Scripts run on the node's own koupper daemon. The SSH provider can call <code>ssh.exec("koupper run agent.kts")</code> to dispatch work remotely.</div>
+                <div>
+                  <strong>Remote execution</strong> — Any agent on this machine can dispatch work to a node using the SSH provider: <code>ssh.exec("koupper run FileIndexerAgent.kts")</code>. The script compiles and runs on the node's own JVM — the node doesn't need internet access, just a reachable IP.
+                </div>
               </div>
               <div className="nodes-arch-item">
                 <span className="nodes-arch-icon">◈</span>
-                <div><strong>Coordinate</strong> — Nodes report status back to CORTEX central via <code>CORTEX_CENTRAL_URL</code>. Each node is independently capable of running any installed agent.</div>
+                <div>
+                  <strong>Heartbeat</strong> — Each node daemon periodically POSTs to <code>CORTEX_CENTRAL_URL/api/nodes/register</code>. If CORTEX stops seeing heartbeats for more than 10 min the node turns <em>stale</em>. Hit <strong>Reconnect</strong> to restart the daemon over SSH.
+                </div>
+              </div>
+              <div className="nodes-arch-item">
+                <span className="nodes-arch-icon">◉</span>
+                <div>
+                  <strong>Use cases</strong> — Run a <code>FileIndexerAgent</code> on a NAS without moving files. Fan out a batch job across several machines in parallel. Keep a heavy model (Qwen3 35B) running on a LAN server and route inference there automatically via LAN priority.
+                </div>
               </div>
             </div>
           </div>
