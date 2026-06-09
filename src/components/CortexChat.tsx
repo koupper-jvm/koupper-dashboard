@@ -1,5 +1,24 @@
 import { useRef, useState, useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
 import { useApp } from '../context/AppContext'
+
+function stripMd(text: string): string {
+  return text
+    .replace(/```[\s\S]*?```/g, ' ')     // code blocks
+    .replace(/`[^`]+`/g, w => w.slice(1, -1))  // inline code — keep text
+    .replace(/#{1,6}\s+/g, '')           // headers
+    .replace(/\*\*([^*]+)\*\*/g, '$1')  // bold
+    .replace(/\*([^*]+)\*/g, '$1')      // italic
+    .replace(/~~([^~]+)~~/g, '$1')      // strikethrough
+    .replace(/!\[.*?\]\(.*?\)/g, '')    // images
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // links → keep label
+    .replace(/^[-*+]\s+/gm, '')         // bullet lists
+    .replace(/^\d+\.\s+/gm, '')         // numbered lists
+    .replace(/^>\s+/gm, '')             // blockquotes
+    .replace(/[-_*]{3,}/g, '')          // horizontal rules
+    .replace(/\n{3,}/g, '\n\n')         // excess newlines
+    .trim()
+}
 
 interface Message {
   role: 'user' | 'cortex'
@@ -193,7 +212,7 @@ export function CortexChat({ onJobSelect, onSpeak, onStop }: Props) {
               setThinking(false)
               setMessages(prev => [...prev, { role: 'cortex', text: response }])
               scrollDown()
-              const voiceText = response.replace(/```[\s\S]*?```/g, '').slice(0, 400).trim()
+              const voiceText = stripMd(response).slice(0, 400)
               if (voiceText) speak(voiceText)
             }
           } else {
@@ -286,13 +305,16 @@ export function CortexChat({ onJobSelect, onSpeak, onStop }: Props) {
                   <div className="chat-avatar">◈</div>
                 )}
                 <div className="chat-bubble">
-                  <div className="chat-msg-text">{m.text}</div>
+                  {m.role === 'cortex'
+                    ? <div className="chat-msg-text chat-md"><ReactMarkdown>{m.text}</ReactMarkdown></div>
+                    : <div className="chat-msg-text">{m.text}</div>
+                  }
                   {m.role === 'cortex' && onSpeak && (
                     <button
                       className="chat-replay-btn"
                       title={voiceMuted ? 'Voz silenciada' : 'Reproducir audio'}
                       onClick={() => {
-                        const t = m.text.replace(/```[\s\S]*?```/g, '').slice(0, 400).trim()
+                        const t = stripMd(m.text).slice(0, 400)
                         if (t) speak(t)
                       }}
                     >{voiceMuted ? '🔇' : '🔊'}</button>
