@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronRight, ChevronLeft, Check, Zap, Cloud, MessageCircle, RefreshCw } from 'lucide-react'
 
@@ -39,6 +39,14 @@ export function SetupPage() {
   const [step, setStep] = useState<Step>('welcome')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [alreadyConfigured, setAlreadyConfigured] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    fetch('/api/setup/status')
+      .then(r => r.json())
+      .then((s: any) => setAlreadyConfigured(!!s.complete))
+      .catch(() => setAlreadyConfigured(false))
+  }, [])
 
   const [primary, setPrimary] = useState<LLMProvider>({
     name: 'LAN', url: '', model: '', apiKey: 'lm-studio',
@@ -103,6 +111,33 @@ export function SetupPage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  if (alreadyConfigured === null) return null
+
+  if (alreadyConfigured && step === 'welcome') {
+    return (
+      <div className="setup-page">
+        <div className="setup-orb setup-orb-1" />
+        <div className="setup-orb setup-orb-2" />
+        <div className="setup-card">
+          <div className="setup-step setup-done">
+            <div className="setup-done-ring">✓</div>
+            <h2 className="setup-title">CORTEX ya está configurado</h2>
+            <p className="setup-subtitle">
+              Tus providers y notificaciones están activos.<br />
+              Para reconfigurar, usa el wizard abajo.
+            </p>
+            <button className="setup-btn-primary" onClick={() => navigate('/')}>
+              Ir al Dashboard <ChevronRight size={16} />
+            </button>
+            <button className="setup-skip" onClick={() => setAlreadyConfigured(false)}>
+              Reconfigurar desde cero
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
