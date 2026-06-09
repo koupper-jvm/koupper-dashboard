@@ -14,6 +14,7 @@ interface Provider {
 }
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
+type RestartState = Record<string, 'idle' | 'restarting' | 'done' | 'error'>
 
 const ROLES = ['', 'general', 'reasoning', 'fast', 'code']
 
@@ -142,6 +143,8 @@ export function ProvidersPage() {
   const [loading, setLoading] = useState(true)
   const [dirty, setDirty] = useState(false)
   const [saveState, setSaveState] = useState<SaveState>('idle')
+  const [affectedAgents, setAffectedAgents] = useState<string[]>([])
+  const [restartStates, setRestartStates] = useState<RestartState>({})
 
   useEffect(() => {
     fetch('/api/providers').then(r => r.json()).then(d => {
@@ -196,12 +199,27 @@ export function ProvidersPage() {
         setHasFile(true)
         setSaveState('saved')
         setDirty(false)
-        setTimeout(() => setSaveState('idle'), 3000)
+        setAffectedAgents(d.affectedAgents ?? [])
+        setRestartStates({})
       } else {
         setSaveState('error')
+        setTimeout(() => setSaveState('idle'), 3000)
       }
     } catch {
       setSaveState('error')
+    }
+  }
+
+  async function restartAgent(name: string) {
+    setRestartStates(s => ({ ...s, [name]: 'restarting' }))
+    try {
+      const res = await fetch('/api/run-agent', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: `${name}.kts`, queue: 'default' }),
+      })
+      setRestartStates(s => ({ ...s, [name]: res.ok ? 'done' : 'error' }))
+    } catch {
+      setRestartStates(s => ({ ...s, [name]: 'error' }))
     }
   }
 
@@ -248,6 +266,31 @@ export function ProvidersPage() {
               onMove={dir => move(i, dir)}
             />
           ))}
+        </div>
+      )}
+
+      {saveState === 'saved' && affectedAgents.length > 0 && (
+        <div className="prov-restart-bar">
+          <span>Saved — restart affected agents to apply:</span>
+          <div className="prov-restart-agents">
+            {affectedAgents.map(name => {
+              const s = restartStates[name] ?? 'idle'
+              return (
+                <button
+                  key={name}
+                  className={`prov-restart-btn prov-restart-${s}`}
+                  disabled={s === 'restarting' || s === 'done'}
+                  onClick={() => restartAgent(name)}
+                >
+                  {s === 'restarting' && <RefreshCw size={12} className="spin" />}
+                  {s === 'done'       && '✓'}
+                  {s === 'error'      && '✗'}
+                  {s === 'idle'       && '↺'}
+                  {' '}{name}
+                </button>
+              )
+            })}
+          </div>
         </div>
       )}
 
