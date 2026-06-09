@@ -45,9 +45,13 @@ function JobCard({ job, selected, onClick }: {
       </div>
       <div className="job-card-meta">
         <span className="job-card-queue" title="Queue">⬡ {job.queue}</span>
-        <span className="job-card-time" title={`Started at ${job.time}`}>🕐 {job.time}</span>
+        <span className="job-card-time" title={`Started at ${job.time}`}>
+          <span className="meta-label">started</span> {job.time}
+        </span>
         {job.status === 'PROCESSING' && elapsedSince(job.time) && (
-          <span className="job-card-elapsed" title="Time running since job started">⏱ running {elapsedSince(job.time)}</span>
+          <span className="job-card-elapsed" title="Time running since job started">
+            <span className="meta-label">running</span> {elapsedSince(job.time)}
+          </span>
         )}
       </div>
       {job.pipelineTotal && (
