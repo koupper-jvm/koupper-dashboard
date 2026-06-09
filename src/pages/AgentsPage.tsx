@@ -173,7 +173,7 @@ export function AgentsPage() {
   )
 
   return (
-    <div className="page">
+    <div className={viewingAgent ? 'page agents-page-split' : 'page'}>
       <div className="page-header">
         <h1 className="page-title">Agents</h1>
         <div className="search-box">

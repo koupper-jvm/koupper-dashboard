@@ -526,6 +526,91 @@ pre, code { font-family: var(--mono); }
   border-radius: 999px; padding: 1px 7px;
 }
 
+/* Agents page — full-height split mode */
+.agents-page-split {
+  height: calc(100vh - 44px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-width: none !important;
+  padding-bottom: 0 !important;
+}
+.agents-page-split .tab-bar { flex-shrink: 0; margin-bottom: 0; }
+
+.agents-split {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  border-top: 1px solid var(--border);
+}
+
+.agents-split-list {
+  width: 52%;
+  flex-shrink: 0;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+  align-content: start;
+  padding: 20px 24px;
+  border-right: 1px solid var(--border);
+}
+
+.agents-split-detail {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--card);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+}
+
+.agents-detail-tabs {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  padding: 0 8px;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.02);
+}
+.agents-detail-tabs button {
+  padding: 10px 16px;
+  font-size: 12px; font-weight: 600;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.15s, border-color 0.15s;
+  border-radius: 0;
+}
+.agents-detail-tabs button:hover { color: var(--text); }
+.agents-detail-tabs button.active { color: var(--accent); border-bottom-color: var(--accent); }
+.agents-detail-close {
+  margin-left: auto;
+  padding: 6px 10px !important;
+  border-bottom-color: transparent !important;
+  color: var(--muted);
+  border-radius: 8px !important;
+  margin-right: 4px;
+}
+.agents-detail-close:hover { color: var(--text) !important; background: rgba(255,255,255,0.05); }
+
+.agents-split-detail-body {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.code-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+}
+
 .agents-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
