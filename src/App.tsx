@@ -1,256 +1,88 @@
-import { useState, useRef } from 'react'
+import { useRef } from 'react'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { useSSE } from './hooks/useSSE'
-import { useLogStream } from './hooks/useLogStream'
-import { useResize } from './hooks/useResize'
-import { useVerticalResize } from './hooks/useVerticalResize'
-import { Header } from './components/Header'
-import type { VoiceHandle } from './components/VoiceWave'
-import { MetricsBar } from './components/MetricsBar'
-import { ObservabilityBar } from './components/ObservabilityBar'
-import { ProviderTokensPanel } from './components/ProviderTokensPanel'
-import { JobsPanel } from './components/JobsPanel'
-import { LogViewer } from './components/LogViewer'
-import { AgentDetailPanel } from './components/AgentDetailPanel'
-import { AgentsList } from './components/AgentsList'
-import { SchedulesList } from './components/SchedulesList'
-import { NodesList } from './components/NodesList'
-import { CortexChat } from './components/CortexChat'
 import { useNodes } from './hooks/useNodes'
-import type { Agent } from './types/api'
+import { AppProvider, useApp } from './context/AppContext'
+import { Sidebar } from './components/Sidebar'
+import { CortexChat } from './components/CortexChat'
+import type { VoiceHandle } from './components/VoiceWave'
+import { VoiceWave } from './components/VoiceWave'
+import { OverviewPage }  from './pages/OverviewPage'
+import { JobsPage }      from './pages/JobsPage'
+import { AgentsPage }    from './pages/AgentsPage'
+import { NodesPage }     from './pages/NodesPage'
+import { CalendarPage }  from './pages/CalendarPage'
+import { LogsPage }      from './pages/LogsPage'
 import './index.css'
 
-const EMPTY_METRICS = { pending: 0, processing: 0, done: 0, failed: 0 }
-const EMPTY_OBS = {
-  jobsPerMin: '0.00', successRate: '100.0',
-  p50Ms: 0, p95Ms: 0,
-  totalLastHour: 0, doneLastHour: 0, failedLastHour: 0,
-  sparkline: Array(12).fill([0, 0]) as [number, number][],
-}
-
-type ColKey = 'left' | 'mid' | 'right'
-
-export default function App() {
-  const { snapshot, status } = useSSE()
+function Shell() {
+  const { snapshot } = useApp()
+  const { chatOpen, setChatOpen, setSelectedJob } = useApp()
   const voiceRef = useRef<VoiceHandle>(null)
-  const { leftW, midW, startDrag } = useResize(350, 420)
-  const { chatPct, startVDrag, containerRef } = useVerticalResize(48)
-
-  const nodes = useNodes()
-
-  const [selectedJob,   setSelectedJob]   = useState<{ queue: string; id: string } | null>(null)
-  const [selectedAgent, setSelectedAgent] = useState<{ agent: Agent; source: string } | null>(null)
-  const [logTitle,      setLogTitle]      = useState('Log')
-  const [agentQuery,    setAgentQuery]    = useState('')
-  const [agentTab,      setAgentTab]      = useState<'installed' | 'browse'>('installed')
-
-  // Collapsible columns state
-  const [collapsed, setCollapsed] = useState<Record<ColKey, boolean>>({
-    left: false, mid: false, right: false,
-  })
-  const log = useLogStream(selectedJob)
-
-  const metrics      = snapshot?.metrics      ?? EMPTY_METRICS
-  const obs          = snapshot?.observability ?? EMPTY_OBS
-  const tokenMetrics = snapshot?.tokenMetrics
-  const jobs      = snapshot?.jobs         ?? []
-  const agents    = snapshot?.agents       ?? []
-  const schedules = snapshot?.schedules    ?? []
-
-  function toggleCol(col: ColKey) {
-    setCollapsed(prev => ({ ...prev, [col]: !prev[col] }))
-  }
-
-  function handleJobSelect(job: { queue: string; id: string }) {
-    setSelectedAgent(null)
-    setSelectedJob(job)
-    setLogTitle(job.id)
-  }
-
-  async function handleRunAgent(name: string) {
-    try {
-      await fetch('/api/run-agent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, queue: 'default' }),
-      })
-    } catch {}
-  }
-
-  function handleViewAgent(name: string) {
-    const cleanName = name.replace(/\.kts$/, '')
-    const agentMeta = agents.find(a => a.name === name || a.name === cleanName || a.name === `${cleanName}.kts`)
-    if (!agentMeta) return
-    fetch(`/api/agent/${cleanName}`)
-      .then(r => r.json())
-      .then(data => {
-        setSelectedJob(null)
-        setSelectedAgent({ agent: agentMeta, source: data.content ?? '' })
-      })
-      .catch(() => {})
-  }
-
-  function handleCloseAgent() {
-    setSelectedAgent(null)
-    setLogTitle('Log')
-  }
-
-  const allCollapsed = collapsed.left && collapsed.mid && collapsed.right
-
-  function colStrip(key: ColKey, label: string) {
-    return (
-      <div className="col-strip" key={key} onClick={() => toggleCol(key)} title={`Expand ${label}`}>
-        <span className="col-strip-label">{label}</span>
-        <span className="col-strip-expand">+</span>
-      </div>
-    )
-  }
 
   return (
-    <div className="app">
-      <Header status={status} cortexActive={snapshot?.cortexActive ?? false} voiceRef={voiceRef} />
-      <MetricsBar metrics={metrics} agentCount={agents.length} scheduleCount={schedules.length} />
-      <ObservabilityBar obs={obs} />
-      {tokenMetrics && tokenMetrics.byProvider.length > 0 && (
-        <ProviderTokensPanel tokens={tokenMetrics} />
-      )}
+    <div className="shell">
+      <Sidebar />
 
-      <div className="main-layout">
-
-        {allCollapsed ? (
-          <div className="all-collapsed-center">
-            <button className="collapsed-reopen-btn" onClick={() => toggleCol('left')}>Jobs</button>
-            <button className="collapsed-reopen-btn" onClick={() => toggleCol('mid')}>Log</button>
-            <button className="collapsed-reopen-btn" onClick={() => toggleCol('right')}>Chat</button>
+      <div className="shell-body">
+        {/* Top status bar */}
+        <div className="topbar">
+          <div className="topbar-left">
+            <span className={`topbar-status ${snapshot ? 'status-online' : 'status-offline'}`}>
+              {snapshot ? '● live' : '○ connecting'}
+            </span>
+            {snapshot?.cortexActive && (
+              <span className="topbar-cortex">CORTEX active</span>
+            )}
           </div>
-        ) : (
-          <>
-            {/* ── Left: Jobs ── */}
-            {collapsed.left
-              ? colStrip('left', 'JOBS')
-              : (
-                <div className="panel-col" style={{ width: leftW }}>
-                  <div className="col-close-bar">
-                    <span className="col-close-label">JOBS</span>
-                    <button className="col-close-btn" onClick={() => toggleCol('left')} title="Collapse">×</button>
-                  </div>
-                  <JobsPanel jobs={jobs} selectedJob={selectedJob} onSelect={handleJobSelect} />
-                </div>
-              )
-            }
+          <div className="topbar-right">
+            <VoiceWave ref={voiceRef} />
+            <span className="topbar-time">{snapshot?.time ?? '—'}</span>
+          </div>
+        </div>
 
-            {!collapsed.left && !collapsed.mid && (
-              <div className="resize-handle" onMouseDown={startDrag('lm')} />
-            )}
-
-            {/* ── Middle: Log or Agent Detail ── */}
-            {collapsed.mid
-              ? colStrip('mid', 'LOG')
-              : (
-                <div className="panel-col" style={{ width: midW }}>
-                  <div className="col-close-bar">
-                    <span className="col-close-label">{selectedAgent ? 'AGENT' : 'LOG'}</span>
-                    <button className="col-close-btn" onClick={() => toggleCol('mid')} title="Collapse">×</button>
-                  </div>
-                  {selectedAgent
-                    ? <AgentDetailPanel
-                        agent={selectedAgent.agent}
-                        sourceCode={selectedAgent.source}
-                        onClose={handleCloseAgent}
-                      />
-                    : <LogViewer log={log} title={logTitle} />
-                  }
-                </div>
-              )
-            }
-
-            {!collapsed.mid && !collapsed.right && (
-              <div className="resize-handle" onMouseDown={startDrag('mr')} />
-            )}
-
-            {/* ── Right: Sidebar (vertically resizable) ── */}
-            {collapsed.right
-              ? colStrip('right', 'CHAT')
-              : (
-                <div className="panel-col sidebar" ref={containerRef}>
-                  <div className="col-close-bar">
-                    <span className="col-close-label">CORTEX</span>
-                    <button className="col-close-btn" onClick={() => toggleCol('right')} title="Collapse">×</button>
-                  </div>
-
-                  {/* Chat — resizable height */}
-                  <div style={{ height: `${chatPct}%`, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 160 }}>
-                    <CortexChat onJobSelect={handleJobSelect} onSpeak={t => voiceRef.current?.speak(t)} onStop={() => voiceRef.current?.stop()} />
-                  </div>
-
-                  {/* Vertical resize handle */}
-                  <div className="resize-handle-v" onMouseDown={startVDrag} />
-
-                  {/* Agents + Schedules — remaining height */}
-                  <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                    <div className="sidebar-section" style={{ flex: 1, maxHeight: 'none' }}>
-                      <div className="panel-header">
-                        <span>Agents <span className="panel-count">({agents.length})</span></span>
-                      </div>
-                      <div className="agent-search-row">
-                        <input
-                          className="agent-search-input"
-                          type="text"
-                          placeholder="Search agents…"
-                          value={agentQuery}
-                          onChange={e => setAgentQuery(e.target.value)}
-                        />
-                        {agentQuery && (
-                          <button className="agent-search-clear" onClick={() => setAgentQuery('')}>×</button>
-                        )}
-                      </div>
-                      <div className="agents-tabs">
-                        <button
-                          className={`agents-tab-btn ${agentTab === 'installed' ? 'active' : ''}`}
-                          onClick={() => setAgentTab('installed')}
-                        >
-                          Installed <span className="agents-tab-count">{agents.length}</span>
-                        </button>
-                        <button
-                          className={`agents-tab-btn ${agentTab === 'browse' ? 'active' : ''}`}
-                          onClick={() => setAgentTab('browse')}
-                        >
-                          Browse
-                        </button>
-                      </div>
-                      <AgentsList
-                        agents={agents}
-                        selectedAgent={selectedAgent?.agent.name ?? null}
-                        onView={handleViewAgent}
-                        onRun={handleRunAgent}
-                        query={agentQuery}
-                        tab={agentTab}
-                        onTabChange={setAgentTab}
-                      />
-                    </div>
-
-                    {schedules.length > 0 && (
-                      <div className="sidebar-section" style={{ maxHeight: '30%' }}>
-                        <div className="panel-header">
-                          Schedules <span className="panel-count">({schedules.length})</span>
-                        </div>
-                        <SchedulesList schedules={schedules} />
-                      </div>
-                    )}
-
-                    <div className="sidebar-section nodes-section">
-                      <div className="panel-header">
-                        Nodes <span className="panel-count">({nodes.length})</span>
-                      </div>
-                      <NodesList nodes={nodes} />
-                    </div>
-                  </div>
-
-                </div>
-              )
-            }
-          </>
-        )}
+        {/* Main content */}
+        <div className="content-area">
+          <Routes>
+            <Route path="/"         element={<OverviewPage />} />
+            <Route path="/jobs"     element={<JobsPage />} />
+            <Route path="/agents"   element={<AgentsPage />} />
+            <Route path="/nodes"    element={<NodesPage />} />
+            <Route path="/calendar" element={<CalendarPage />} />
+            <Route path="/logs"     element={<LogsPage />} />
+          </Routes>
+        </div>
       </div>
+
+      {/* Chat panel */}
+      {chatOpen && (
+        <div className="chat-panel">
+          <div className="chat-panel-header">
+            <span className="chat-panel-title">CORTEX Chat</span>
+            <button className="chat-panel-close" onClick={() => setChatOpen(false)}>×</button>
+          </div>
+          <div className="chat-panel-body">
+            <CortexChat
+              onJobSelect={j => setSelectedJob(j)}
+              onSpeak={t => voiceRef.current?.speak(t)}
+              onStop={() => voiceRef.current?.stop()}
+            />
+          </div>
+        </div>
+      )}
     </div>
+  )
+}
+
+export default function App() {
+  const { snapshot } = useSSE()
+  const nodes = useNodes()
+
+  return (
+    <BrowserRouter>
+      <AppProvider snapshot={snapshot} nodes={nodes}>
+        <Shell />
+      </AppProvider>
+    </BrowserRouter>
   )
 }
