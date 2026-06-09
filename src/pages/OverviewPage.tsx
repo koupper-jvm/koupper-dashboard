@@ -59,9 +59,9 @@ function JobRow({ job }: { job: Job }) {
         <span className="ov-job-id">{job.id}</span>
         <span className="ov-job-queue">{job.queue}</span>
         <span className="ov-job-status" style={{ color }}>{job.status}</span>
-        <span className="ov-job-time">{job.time}</span>
+        <span className="ov-job-time" title={`Started at ${job.time}`}>🕐 {job.time}</span>
         {job.status === 'PROCESSING' && elapsed && (
-          <span className="job-card-elapsed">⏱ {elapsed}</span>
+          <span className="job-card-elapsed" title="Time running since job started">⏱ running {elapsed}</span>
         )}
       </div>
       {job.pipelineTotal && (
