@@ -317,6 +317,13 @@ function JobDetailPanel({ jobRef, onRetry, onPurge }: {
                 <span style={{ color: 'var(--text-secondary)' }}>{new Date(detail.submittedAt).toLocaleString()}</span>
               </div>
             )}
+            {!!(detail as Record<string, unknown> | null)?.completedAt && (
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12 }}>
+                <Clock size={12} style={{ color: 'var(--muted)', flexShrink: 0 }} />
+                <span style={{ color: 'var(--muted)', minWidth: 80 }}>Completado</span>
+                <span style={{ color: 'var(--text-secondary)' }}>{new Date(String((detail as Record<string, unknown>).completedAt)).toLocaleString()}</span>
+              </div>
+            )}
             {detail?.scriptPath && (
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12 }}>
                 <FileText size={12} style={{ color: 'var(--muted)', flexShrink: 0 }} />
