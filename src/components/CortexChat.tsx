@@ -119,11 +119,15 @@ export function CortexChat({ onJobSelect, onSpeak, onStop }: Props) {
     try {
       const raw = localStorage.getItem(PENDING_KEY)
       if (!raw) return
-      const { sessionId, linesBeforeSend } = JSON.parse(raw)
-      if (sessionId === currentSessionId.current) {
+      const { linesBeforeSend } = JSON.parse(raw)
+      // Resume if the last restored message is from user (no cortex reply yet)
+      const lastMsg = _initMsgs[_initMsgs.length - 1]
+      if (lastMsg?.role === 'user') {
         setThinking(true)
         onJobSelect({ queue: 'cortex', id: 'cortex-session' })
         pollResponse(linesBeforeSend)
+      } else {
+        localStorage.removeItem(PENDING_KEY)
       }
     } catch {}
 
