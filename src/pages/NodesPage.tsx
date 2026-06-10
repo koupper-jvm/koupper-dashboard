@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Server, Wifi, WifiOff, Bot, Clock, Plus, Play, Trash2, X } from 'lucide-react'
+import { Server, Wifi, WifiOff, Bot, Clock, Plus, Trash2, X } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import type { NodeInfo } from '../hooks/useNodes'
 
@@ -157,60 +157,6 @@ function ProvisionModal({ onClose }: { onClose: () => void }) {
   )
 }
 
-function RunScriptInput({ node, onClose }: { node: NodeInfo; onClose: () => void }) {
-  const agents = node.agents ?? []
-  const [selected, setSelected] = useState(agents[0] ?? '')
-  const [running, setRunning] = useState(false)
-  const [done, setDone] = useState(false)
-
-  async function handleRun() {
-    if (!selected) return
-    setRunning(true)
-    try {
-      await fetch('/api/run-agent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: selected.replace(/\.kts$/, ''),
-          queue: `node-${node.host}`,
-        }),
-      })
-      setDone(true)
-      setTimeout(onClose, 1500)
-    } catch {}
-    setRunning(false)
-  }
-
-  if (agents.length === 0) {
-    return (
-      <div className="node-run-row">
-        <span style={{ fontSize: 10, color: 'var(--muted)' }}>No agents installed on this node</span>
-        <button className="node-action-btn" onClick={onClose}>✕</button>
-      </div>
-    )
-  }
-
-  return (
-    <div className="node-run-row">
-      <select
-        className="node-run-select"
-        value={selected}
-        onChange={e => setSelected(e.target.value)}
-        disabled={running || done}
-      >
-        {agents.map(a => (
-          <option key={a} value={a}>{a.replace(/\.kts$/, '')}</option>
-        ))}
-      </select>
-      <button className="node-action-btn node-action-primary"
-        onClick={handleRun} disabled={running || done || !selected}>
-        {done ? '✓ Queued' : running ? '…' : 'Run'}
-      </button>
-      <button className="node-action-btn" onClick={onClose}>✕</button>
-    </div>
-  )
-}
-
 function nodeEffectiveStatus(node: NodeInfo): 'ready' | 'stale' | 'offline' {
   if (node.status === 'uninstalled') return 'offline'
   if (!node.registeredAt) return 'stale'
@@ -225,7 +171,6 @@ function NodeCard({ node, onProvision: _onProvision }: { node: NodeInfo; onProvi
   const isReady = effective === 'ready'
   const isOff   = node.status === 'uninstalled'
   const isStale = effective === 'stale'
-  const [showRunInput, setShowRunInput] = useState(false)
   const [reconnecting, setReconnecting] = useState(false)
   const [reconnected, setReconnected] = useState(false)
 
@@ -309,20 +254,12 @@ function NodeCard({ node, onProvision: _onProvision }: { node: NodeInfo; onProvi
               {reconnecting ? 'Connecting…' : 'Reconnect'}
             </button>
           )}
-          {(isReady || reconnected) && (
-            <button className="node-action-btn" onClick={() => setShowRunInput(v => !v)}>
-              <Play size={11} style={{ display: 'inline', marginRight: 4 }} />Run script
-            </button>
-          )}
           <button className="node-action-btn node-action-danger" onClick={handleUninstall}>
             <Trash2 size={11} style={{ display: 'inline', marginRight: 4 }} />Uninstall
           </button>
         </div>
       )}
 
-      {effective !== 'offline' && showRunInput && (
-        <RunScriptInput node={node} onClose={() => setShowRunInput(false)} />
-      )}
     </div>
   )
 }
