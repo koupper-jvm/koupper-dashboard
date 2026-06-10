@@ -55,15 +55,16 @@ function ProvisionModal({ onClose }: { onClose: () => void }) {
         body: JSON.stringify({
           name: 'NodeProvisionerAgent',
           queue: 'default',
-          env: {
-            NODE_HOST: form.host,
-            NODE_USER: form.user,
-            NODE_PASSWORD: form.password,
-            NODE_PORT: form.port,
-            NODE_ROLE: form.role,
-            LAN_LLM_URL: form.llmUrl,
-            LAN_LLM_MODEL: form.llmModel,
-            CORTEX_CENTRAL_URL: form.centralUrl,
+          input: {
+            action: 'install',
+            host: form.host,
+            user: form.user,
+            password: form.password || undefined,
+            port: parseInt(form.port, 10) || 22,
+            role: form.role,
+            llmUrl: form.llmUrl,
+            llmModel: form.llmModel,
+            centralUrl: form.centralUrl || 'http://192.168.1.19:18083',
           },
         }),
       })
@@ -187,12 +188,12 @@ function RunScriptModal({ node, onClose }: { node: NodeInfo; onClose: () => void
       body: JSON.stringify({
         name: 'NodeProvisionerAgent',
         queue: 'default',
-        env: {
-          NODE_ACTION: 'run',
-          NODE_HOST: node.host,
-          NODE_USER: user,
-          NODE_SCRIPT: scriptName.replace(/\.kts$/, ''),
-          ...(key ? { NODE_KEY_PATH: key } : { NODE_PASSWORD: pass }),
+        input: {
+          action: 'run',
+          host: node.host,
+          user,
+          scriptName: scriptName.replace(/\.kts$/, ''),
+          ...(key ? { keyPath: key } : { password: pass }),
         },
       }),
     })
@@ -328,7 +329,12 @@ function NodeCard({ node, onProvision: _onProvision }: { node: NodeInfo; onProvi
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: 'NodeProvisionerAgent', queue: 'default',
-        env: { NODE_HOST: node.host, NODE_ACTION: 'uninstall' },
+        input: {
+          action: 'uninstall',
+          host: node.host,
+          user: node.sshUser || 'pi',
+          ...(node.sshKeyPath ? { keyPath: node.sshKeyPath } : {}),
+        },
       }),
     }).catch(() => {})
   }
