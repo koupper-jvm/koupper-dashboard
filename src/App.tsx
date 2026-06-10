@@ -1,5 +1,26 @@
-import { useRef, useEffect, useState } from 'react'
+import { useRef, useEffect, useState, Component, type ReactNode, type ErrorInfo } from 'react'
 import { Routes, Route, useNavigate } from 'react-router-dom'
+
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null }
+  static getDerivedStateFromError(e: Error) { return { error: e } }
+  componentDidCatch(e: Error, info: ErrorInfo) { console.error('[ErrorBoundary]', e, info) }
+  render() {
+    if (this.state.error) return (
+      <div style={{ padding: 32, color: '#ff007a', fontFamily: 'var(--mono)', fontSize: 13 }}>
+        <div style={{ marginBottom: 8, fontWeight: 700 }}>Error de renderizado</div>
+        <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all', color: 'var(--text-secondary)' }}>
+          {(this.state.error as Error).message}
+        </pre>
+        <button style={{ marginTop: 16, padding: '6px 14px', background: 'var(--border)', border: 'none', color: 'var(--text)', borderRadius: 6, cursor: 'pointer' }}
+          onClick={() => this.setState({ error: null })}>
+          Reintentar
+        </button>
+      </div>
+    )
+    return this.props.children
+  }
+}
 import { useSSE } from './hooks/useSSE'
 import { useNodes } from './hooks/useNodes'
 import { AppProvider, useApp } from './context/AppContext'
@@ -70,16 +91,18 @@ function Shell() {
 
         {/* Main content */}
         <div className="content-area">
-          <Routes>
-            <Route path="/"         element={<OverviewPage />} />
-            <Route path="/jobs"     element={<JobsPage />} />
-            <Route path="/agents"   element={<AgentsPage />} />
-            <Route path="/nodes"     element={<NodesPage />} />
-            <Route path="/providers" element={<ProvidersPage />} />
-            <Route path="/calendar"  element={<CalendarPage />} />
-            <Route path="/logs"     element={<LogsPage />} />
-            <Route path="/setup"    element={<SetupPage />} />
-          </Routes>
+          <ErrorBoundary>
+            <Routes>
+              <Route path="/"         element={<OverviewPage />} />
+              <Route path="/jobs"     element={<JobsPage />} />
+              <Route path="/agents"   element={<AgentsPage />} />
+              <Route path="/nodes"     element={<NodesPage />} />
+              <Route path="/providers" element={<ProvidersPage />} />
+              <Route path="/calendar"  element={<CalendarPage />} />
+              <Route path="/logs"     element={<LogsPage />} />
+              <Route path="/setup"    element={<SetupPage />} />
+            </Routes>
+          </ErrorBoundary>
         </div>
       </div>
 

@@ -253,11 +253,19 @@ function JobDetailPanel({ jobRef, onRetry, onPurge }: {
   const inputData: unknown = detail?.input ?? detail?.env ?? null
 
   // Output: result from file (priority) or snapshot
-  const rawResult = (detail as Record<string, unknown> | null)?.result as string | null ?? job?.result ?? null
+  // API may return result as already-parsed object or as a JSON string
+  const rawResultRaw = (detail as Record<string, unknown> | null)?.result ?? job?.result ?? null
+  const rawResult: string | null = rawResultRaw == null ? null
+    : typeof rawResultRaw === 'string' ? rawResultRaw
+    : JSON.stringify(rawResultRaw)
   let parsedResult: Record<string, unknown> | null = null
-  if (rawResult) {
-    try { parsedResult = JSON.parse(rawResult) }
-    catch { parsedResult = parseKotlinDataClass(rawResult) }
+  if (rawResultRaw != null) {
+    if (typeof rawResultRaw === 'object' && !Array.isArray(rawResultRaw)) {
+      parsedResult = rawResultRaw as Record<string, unknown>
+    } else {
+      try { parsedResult = JSON.parse(rawResult!) }
+      catch { try { parsedResult = parseKotlinDataClass(rawResult!) } catch { parsedResult = null } }
+    }
   }
   const isProvResult = !!(parsedResult && 'steps' in parsedResult && 'success' in parsedResult)
 
