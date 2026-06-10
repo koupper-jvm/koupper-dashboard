@@ -184,12 +184,12 @@ function RunScriptModal({ node, onClose }: { node: NodeInfo; onClose: () => void
         body: JSON.stringify({
           name: 'NodeProvisionerAgent',
           queue: 'default',
-          args: {
-            action: 'run',
-            host: node.host,
-            user: sshUser,
-            ...(useKey ? { keyPath: sshKey } : { password: sshPass }),
-            scriptName: script,
+          env: {
+            NODE_ACTION: 'run',
+            NODE_HOST: node.host,
+            NODE_USER: sshUser,
+            NODE_SCRIPT: script.replace(/\.kts$/, ''),
+            ...(useKey ? { NODE_KEY_PATH: sshKey } : { NODE_PASSWORD: sshPass }),
           },
         }),
       })
