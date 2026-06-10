@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
+import { Trash2 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 
 function stripMd(text: string): string {
@@ -204,6 +205,16 @@ export function CortexChat({ onJobSelect, onSpeak, onStop }: Props) {
     }
   }
 
+  function clearAllHistory() {
+    if (!confirm('¿Borrar todo el historial de chat?')) return
+    saveSessions([])
+    setSessions([])
+    currentSessionId.current = null
+    localStorage.removeItem(ACTIVE_KEY)
+    setMessages([])
+    setShowHistory(false)
+  }
+
   async function pollResponse(linesBeforeSend: number) {
     cancelPoll()
     let attempts    = 0
@@ -287,7 +298,14 @@ export function CortexChat({ onJobSelect, onSpeak, onStop }: Props) {
                 </button>
               )}
             </div>
-            <button className="new-chat-btn" onClick={newChat} title="New conversation">＋ New</button>
+            <div className="chat-header-actions">
+              {sessions.length > 0 && (
+                <button className="chat-clear-btn" onClick={clearAllHistory} title="Borrar todo el historial">
+                  <Trash2 size={13} />
+                </button>
+              )}
+              <button className="new-chat-btn" onClick={newChat} title="New conversation">＋ New</button>
+            </div>
           </div>
 
           {showHistory && (

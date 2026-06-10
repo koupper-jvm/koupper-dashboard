@@ -1133,12 +1133,20 @@ pre, code { font-family: var(--mono); }
 }
 .chat-history-btn:hover { color: var(--accent); border-color: rgba(0,242,254,0.2); }
 
+.chat-header-actions { display: flex; align-items: center; gap: 6px; }
 .new-chat-btn {
   font-size: 10px; padding: 2px 9px; border-radius: 999px;
   background: transparent; border: 1px solid rgba(0,242,254,0.15);
   color: var(--accent); cursor: pointer; font-family: inherit; transition: all 0.15s;
 }
 .new-chat-btn:hover { background: rgba(0,242,254,0.07); border-color: rgba(0,242,254,0.3); }
+.chat-clear-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 6px;
+  background: transparent; border: 1px solid transparent;
+  color: var(--muted); cursor: pointer; transition: all 0.15s;
+}
+.chat-clear-btn:hover { color: #f87171; background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.2); }
 
 .chat-history-list {
   max-height: 140px; overflow-y: auto;
