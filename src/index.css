@@ -1701,12 +1701,15 @@ pre, code { font-family: var(--mono); }
   color: var(--muted); font-family: inherit; transition: all 0.15s;
 }
 .run-modal-tab.active { border-color: rgba(0,242,254,0.3); color: var(--accent); background: rgba(0,242,254,0.06); }
-.modal-close {
-  background: transparent; border: none; color: var(--muted);
-  cursor: pointer; padding: 2px; display: flex; align-items: center;
-  transition: color 0.15s;
+
+.node-run-modal { width: min(400px, 92vw); }
+.node-run-modal-body { display: flex; flex-direction: column; gap: 12px; padding: 16px 18px; }
+.node-run-modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--border); }
+.run-modal-result {
+  font-size: 11px; padding: 6px 10px; border-radius: 6px;
 }
-.modal-close:hover { color: var(--text); }
+.run-modal-result.ok { background: rgba(74,222,128,0.08); color: var(--green); border: 1px solid rgba(74,222,128,0.2); }
+.run-modal-result.err { background: rgba(255,77,106,0.08); color: var(--red); border: 1px solid rgba(255,77,106,0.2); }
 
 /* Stale chip */
 .chip-amber {
