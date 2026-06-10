@@ -348,15 +348,17 @@ function JobDetailPanel({ jobRef, onRetry, onPurge }: {
           </Section>
         )}
 
-        {/* Input */}
-        <Section title="Input">
-          {loadingDetail
-            ? <span style={{ fontSize: 12, color: 'var(--muted)' }}>Cargando…</span>
-            : inputData
-              ? <InputView input={inputData} />
-              : <span style={{ fontSize: 12, color: 'var(--muted)' }}>Sin parámetros (script usa env vars del sistema)</span>
-          }
-        </Section>
+        {/* Input — only show section when there's actual runtime data or no schema inputType */}
+        {(inputData || !detail?.schema?.inputType) && (
+          <Section title="Input">
+            {loadingDetail
+              ? <span style={{ fontSize: 12, color: 'var(--muted)' }}>Cargando…</span>
+              : inputData
+                ? <InputView input={inputData} />
+                : <span style={{ fontSize: 12, color: 'var(--muted)' }}>Sin parámetros (script usa env vars del sistema)</span>
+            }
+          </Section>
+        )}
 
         {/* Output */}
         <Section title="Output">
