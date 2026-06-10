@@ -162,6 +162,8 @@ export function AgentsPage() {
     }
   }
 
+  const installedNames = new Set(agents.map(a => a.name.replace(/\.kts$/, '')))
+
   const lq = query.toLowerCase()
   const filteredInstalled = agents.filter(a =>
     !lq || a.name.toLowerCase().includes(lq) || a.role?.toLowerCase().includes(lq) ||
@@ -259,7 +261,7 @@ export function AgentsPage() {
               {filteredRegistry.map(a => (
                 <MarketplaceCard key={a.name} agent={a}
                   onInstall={handleInstall}
-                  state={installing[a.name] ?? 'idle'} />
+                  state={installing[a.name] ?? (installedNames.has(a.name.replace(/\.kts$/, '')) ? 'ok' : 'idle')} />
               ))}
             </div>
       )}
