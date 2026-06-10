@@ -1,9 +1,15 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { Server, Wifi, WifiOff, Bot, Clock, Plus, Trash2, X, Play } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import type { NodeInfo } from '../hooks/useNodes'
+
+const sshCredsKey = (host: string) => `cortex-ssh-${host}`
+
+function loadSshCreds(host: string): { user: string; keyPath?: string; password?: string } | null {
+  try { return JSON.parse(localStorage.getItem(sshCredsKey(host)) ?? 'null') } catch { return null }
+}
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()
@@ -162,26 +168,38 @@ function ProvisionModal({ onClose }: { onClose: () => void }) {
 
 function RunScriptModal({ node, onClose }: { node: NodeInfo; onClose: () => void }) {
   const navigate = useNavigate()
+  const { setSelectedJob } = useApp()
   const agents = node.agents ?? []
-  // Credentials: pre-filled from saved node data
-  const hasSavedCreds = !!(node.sshUser && node.sshKeyPath)
+
+  // Creds: localStorage takes priority, server-saved key as fallback
+  const saved = useMemo(() => loadSshCreds(node.host), [node.host])
+  const hasSavedCreds = !!(saved || (node.sshUser && node.sshKeyPath))
+
   const [script, setScript]   = useState(agents[0] ?? '')
-  const [sshUser, setSshUser] = useState(node.sshUser ?? '')
-  const [sshKey, setSshKey]   = useState(node.sshKeyPath ?? '')
-  const [sshPass, setSshPass] = useState('')
-  const [useKey, setUseKey]   = useState(!!node.sshKeyPath || !node.sshUser)
+  const [sshUser, setSshUser] = useState(saved?.user ?? node.sshUser ?? '')
+  const [sshKey, setSshKey]   = useState(saved?.keyPath ?? node.sshKeyPath ?? '')
+  const [sshPass, setSshPass] = useState(saved?.password ?? '')
+  const [useKey, setUseKey]   = useState(!!(saved?.keyPath ?? node.sshKeyPath))
   const [running, setRunning] = useState(false)
   const [jobId, setJobId]     = useState<string | null>(null)
   const [showCreds, setShowCreds] = useState(!hasSavedCreds)
 
+  function forgetCreds() {
+    localStorage.removeItem(sshCredsKey(node.host))
+    setSshUser(''); setSshKey(''); setSshPass('')
+    setUseKey(false); setShowCreds(true)
+  }
+
   async function enqueue(user: string, key: string | undefined, pass: string | undefined, scriptName: string) {
-    if (key) {
-      await fetch(`/api/nodes/update/${encodeURIComponent(node.host)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sshUser: user, sshKeyPath: key }),
-      })
-    }
+    // Persist to localStorage so next open is pre-filled
+    localStorage.setItem(sshCredsKey(node.host), JSON.stringify({
+      user, ...(key ? { keyPath: key } : { password: pass }),
+    }))
+    // Persist key path server-side too
+    await fetch(`/api/nodes/update/${encodeURIComponent(node.host)}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sshUser: user, ...(key ? { sshKeyPath: key } : {}) }),
+    }).catch(() => {})
     const res = await fetch('/api/run-agent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -202,20 +220,24 @@ function RunScriptModal({ node, onClose }: { node: NodeInfo; onClose: () => void
 
   async function handleRun() {
     if (!script) return
-    const user = sshUser || node.sshUser || ''
-    const key  = useKey ? (sshKey || node.sshKeyPath) : undefined
+    const user = sshUser || ''
+    const key  = useKey ? sshKey : undefined
     const pass = !useKey ? sshPass : undefined
     if (!user || (useKey ? !key : !pass)) return
     setRunning(true)
     try {
       const data = await enqueue(user, key, pass, script)
-      if (data.ok) setJobId(data.jobId)
-      else setShowCreds(true)  // show form again with error context
+      if (data.ok) { setJobId(data.jobId); setShowCreds(false) }
+      else setShowCreds(true)
     } catch {}
     setRunning(false)
   }
 
-  const canRun = !!(script && (sshUser || node.sshUser) && (useKey ? (sshKey || node.sshKeyPath) : sshPass))
+  const canRun = !!(script && sshUser && (useKey ? sshKey : sshPass))
+
+  const credsLabel = saved
+    ? `${saved.user} · ${saved.keyPath ? saved.keyPath : '●●●●'}`
+    : `${node.sshUser} · ${node.sshKeyPath}`
 
   return createPortal(
     <div className="modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}>
@@ -235,7 +257,6 @@ function RunScriptModal({ node, onClose }: { node: NodeInfo; onClose: () => void
           </div>
         ) : (
           <div className="node-run-modal-body">
-            {/* Agent selector — always shown */}
             <div className="run-modal-field">
               <label className="run-modal-label">Agente</label>
               {agents.length === 0
@@ -246,18 +267,22 @@ function RunScriptModal({ node, onClose }: { node: NodeInfo; onClose: () => void
               }
             </div>
 
-            {/* Saved creds summary — shown when creds exist and form is hidden */}
+            {/* Compact saved-creds row */}
             {hasSavedCreds && !showCreds && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 10, color: 'var(--muted)' }}>
-                  SSH: <code style={{ fontFamily: 'var(--mono)' }}>{node.sshUser}</code> · {node.sshKeyPath}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <span style={{ fontSize: 10, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  SSH: <code style={{ fontFamily: 'var(--mono)' }}>{credsLabel}</code>
                 </span>
-                <button style={{ fontSize: 10, background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer' }}
-                  onClick={() => setShowCreds(true)}>cambiar</button>
+                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                  <button style={{ fontSize: 10, background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer' }}
+                    onClick={() => setShowCreds(true)}>cambiar</button>
+                  <button style={{ fontSize: 10, background: 'none', border: 'none', color: 'var(--danger, #f87171)', cursor: 'pointer' }}
+                    onClick={forgetCreds}>olvidar</button>
+                </div>
               </div>
             )}
 
-            {/* Creds form — shown on first run or when user wants to change */}
+            {/* Full creds form */}
             {showCreds && (
               <>
                 <div className="run-modal-field">
@@ -285,7 +310,11 @@ function RunScriptModal({ node, onClose }: { node: NodeInfo; onClose: () => void
             <>
               <button className="node-action-btn" onClick={onClose}>Cerrar</button>
               <button className="node-action-btn node-action-primary"
-                onClick={() => { onClose(); navigate('/jobs') }}>
+                onClick={() => {
+                  setSelectedJob({ queue: 'default', id: jobId! })
+                  onClose()
+                  navigate('/jobs')
+                }}>
                 Ver job →
               </button>
             </>
