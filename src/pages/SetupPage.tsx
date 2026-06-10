@@ -130,7 +130,7 @@ export function SetupPage() {
         <div className="setup-orb setup-orb-1" />
         <div className="setup-orb setup-orb-2" />
         <div className="setup-card setup-card-wide">
-          <div className="setup-step">
+          <div className="setup-step setup-done">
             <div className="setup-done-ring">✓</div>
             <h2 className="setup-title">CORTEX configurado</h2>
             <p className="setup-subtitle">Configuración activa al momento del inicio.</p>
@@ -138,11 +138,12 @@ export function SetupPage() {
             <div className="setup-config-section">
               <div className="setup-config-heading">LLM Providers</div>
               {currentProviders.length === 0 && (
-                <div className="setup-config-empty">No providers in .env — using ~/.profile</div>
+                <div className="setup-config-empty">No providers en .env — usando ~/.profile</div>
               )}
-              {currentProviders.map((p: any) => (
+              {currentProviders.map((p: any, i: number) => (
                 <div key={p.name} className={`setup-config-row ${p.enabled ? '' : 'disabled'}`}>
-                  <span className="setup-config-name">#{p.priority} {p.name}</span>
+                  <span className="setup-config-pos">#{i + 1}</span>
+                  <span className="setup-config-name">{p.name}</span>
                   <span className="setup-config-model">{p.model || '—'}</span>
                   <span className="setup-config-url">{p.url || '—'}</span>
                   <span className={`setup-config-badge ${p.enabled ? 'on' : 'off'}`}>
@@ -155,7 +156,10 @@ export function SetupPage() {
             <div className="setup-config-section">
               <div className="setup-config-heading">Notifications</div>
               <div className="setup-config-row">
+                <span className="setup-config-pos" style={{ visibility: 'hidden' }}>#0</span>
                 <span className="setup-config-name">Telegram</span>
+                <span className="setup-config-model" />
+                <span className="setup-config-url" />
                 <span className={`setup-config-badge ${hasTelegram ? 'on' : 'off'}`}>
                   {hasTelegram ? 'configured' : 'not configured'}
                 </span>

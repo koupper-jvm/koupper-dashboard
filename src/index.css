@@ -1967,19 +1967,22 @@ pre, code { font-family: var(--mono); }
   box-shadow: 0 0 60px rgba(0,242,254,0.04), 0 24px 48px rgba(0,0,0,0.4);
 }
 .setup-card-wide { max-width: 660px; }
-.setup-config-section { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.setup-config-section { display: flex; flex-direction: column; gap: 6px; width: 100%; text-align: left; }
 .setup-config-heading { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
 .setup-config-row {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  padding: 8px 12px; border-radius: 8px; background: var(--surface-2);
+  display: grid;
+  grid-template-columns: 28px 64px 1fr 1fr auto;
+  align-items: center; gap: 12px;
+  padding: 9px 14px; border-radius: 8px; background: var(--surface-2);
   border: 1px solid var(--border);
 }
 .setup-config-row.disabled { opacity: 0.5; }
-.setup-config-name  { font-weight: 700; font-size: 12px; color: var(--text); min-width: 70px; }
-.setup-config-model { font-family: var(--mono); font-size: 11px; color: var(--cyan); }
-.setup-config-url   { font-family: var(--mono); font-size: 10px; color: var(--muted); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.setup-config-pos   { font-size: 10px; font-weight: 700; color: var(--muted); font-family: var(--mono); }
+.setup-config-name  { font-weight: 700; font-size: 12px; color: var(--text); }
+.setup-config-model { font-family: var(--mono); font-size: 11px; color: var(--cyan); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.setup-config-url   { font-family: var(--mono); font-size: 10px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .setup-config-empty { font-size: 11px; color: var(--muted); font-style: italic; padding: 6px 0; }
-.setup-config-badge { font-size: 10px; font-weight: 700; border-radius: 999px; padding: 2px 8px; }
+.setup-config-badge { font-size: 10px; font-weight: 700; border-radius: 999px; padding: 2px 8px; white-space: nowrap; }
 .setup-config-badge.on  { background: var(--green-dim); color: var(--green); }
 .setup-config-badge.off { background: var(--surface-2); color: var(--muted); }
 
