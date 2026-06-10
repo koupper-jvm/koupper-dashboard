@@ -1688,10 +1688,25 @@ pre, code { font-family: var(--mono); }
   flex: 1; font-size: 11px; font-family: var(--mono);
   padding: 4px 8px; border-radius: 6px;
   background: rgba(255,255,255,0.04); border: 1px solid var(--border-2);
-  color: var(--text); outline: none; cursor: pointer;
+  color: var(--text); outline: none; cursor: pointer; width: 100%;
 }
 .node-run-select:focus { border-color: rgba(0,242,254,0.3); }
 .node-run-select option { background: #0d0d14; }
+
+.run-modal-field { display: flex; flex-direction: column; gap: 4px; }
+.run-modal-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.run-modal-tab {
+  font-size: 10px; padding: 3px 10px; border-radius: 6px; cursor: pointer;
+  background: transparent; border: 1px solid var(--border);
+  color: var(--muted); font-family: inherit; transition: all 0.15s;
+}
+.run-modal-tab.active { border-color: rgba(0,242,254,0.3); color: var(--accent); background: rgba(0,242,254,0.06); }
+.modal-close {
+  background: transparent; border: none; color: var(--muted);
+  cursor: pointer; padding: 2px; display: flex; align-items: center;
+  transition: color 0.15s;
+}
+.modal-close:hover { color: var(--text); }
 
 /* Stale chip */
 .chip-amber {

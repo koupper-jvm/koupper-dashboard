@@ -6,6 +6,8 @@ export interface NodeInfo {
   role: string
   agents: string[]
   registeredAt: string
+  sshUser?: string
+  sshKeyPath?: string
 }
 
 export function useNodes(refreshTick?: number) {

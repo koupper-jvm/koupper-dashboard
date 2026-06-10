@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Server, Wifi, WifiOff, Bot, Clock, Plus, Trash2, X } from 'lucide-react'
+import { Server, Wifi, WifiOff, Bot, Clock, Plus, Trash2, X, Play } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import type { NodeInfo } from '../hooks/useNodes'
 
@@ -157,6 +157,113 @@ function ProvisionModal({ onClose }: { onClose: () => void }) {
   )
 }
 
+function RunScriptModal({ node, onClose }: { node: NodeInfo; onClose: () => void }) {
+  const agents = node.agents ?? []
+  const [script, setScript]     = useState(agents[0] ?? '')
+  const [sshUser, setSshUser]   = useState(node.sshUser ?? '')
+  const [sshKey, setSshKey]     = useState(node.sshKeyPath ?? '')
+  const [sshPass, setSshPass]   = useState('')
+  const [useKey, setUseKey]     = useState(!!(node.sshKeyPath))
+  const [running, setRunning]   = useState(false)
+  const [result, setResult]     = useState<{ ok: boolean; msg: string } | null>(null)
+
+  async function handleRun() {
+    if (!script || !sshUser || (!sshKey && !sshPass)) return
+    setRunning(true)
+    setResult(null)
+    try {
+      // Persist SSH creds to node file
+      await fetch(`/api/nodes/update/${encodeURIComponent(node.host)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sshUser, ...(useKey ? { sshKeyPath: sshKey } : {}) }),
+      })
+      // Run via NodeProvisionerAgent over SSH
+      const res = await fetch('/api/run-agent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'NodeProvisionerAgent',
+          queue: 'default',
+          args: {
+            action: 'run',
+            host: node.host,
+            user: sshUser,
+            ...(useKey ? { keyPath: sshKey } : { password: sshPass }),
+            scriptName: script,
+          },
+        }),
+      })
+      const data = await res.json()
+      setResult({ ok: data.ok !== false, msg: data.ok !== false ? `✓ ${script.replace(/\.kts$/, '')} lanzado en ${node.host}` : (data.error ?? 'Error') })
+    } catch (e: any) {
+      setResult({ ok: false, msg: e.message ?? 'Error de red' })
+    }
+    setRunning(false)
+  }
+
+  const canRun = script && sshUser && (useKey ? sshKey : sshPass)
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-box" style={{ maxWidth: 420 }} onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <span>Run on <code style={{ color: 'var(--accent)', fontSize: 12 }}>{node.host}</code></span>
+          <button className="modal-close" onClick={onClose}><X size={14} /></button>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '12px 0' }}>
+          {agents.length === 0 ? (
+            <p style={{ fontSize: 11, color: 'var(--muted)' }}>No hay agentes registrados en este nodo.</p>
+          ) : (
+            <div className="run-modal-field">
+              <label className="run-modal-label">Agente</label>
+              <select className="node-run-select" value={script} onChange={e => setScript(e.target.value)}>
+                {agents.map(a => <option key={a} value={a}>{a.replace(/\.kts$/, '')}</option>)}
+              </select>
+            </div>
+          )}
+
+          <div className="run-modal-field">
+            <label className="run-modal-label">Usuario SSH</label>
+            <input className="modal-input" value={sshUser} onChange={e => setSshUser(e.target.value)} placeholder="pi" />
+          </div>
+
+          <div className="run-modal-field">
+            <label className="run-modal-label">Autenticación</label>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
+              <button className={`run-modal-tab ${useKey ? 'active' : ''}`} onClick={() => setUseKey(true)}>Clave SSH</button>
+              <button className={`run-modal-tab ${!useKey ? 'active' : ''}`} onClick={() => setUseKey(false)}>Contraseña</button>
+            </div>
+            {useKey
+              ? <input className="modal-input" value={sshKey} onChange={e => setSshKey(e.target.value)} placeholder="~/.ssh/id_rsa" />
+              : <input className="modal-input" type="password" value={sshPass} onChange={e => setSshPass(e.target.value)} placeholder="contraseña SSH" />
+            }
+          </div>
+
+          {result && (
+            <div style={{ fontSize: 11, padding: '6px 10px', borderRadius: 6,
+              background: result.ok ? 'rgba(74,222,128,0.08)' : 'rgba(255,77,106,0.08)',
+              color: result.ok ? 'var(--green)' : 'var(--red)',
+              border: `1px solid ${result.ok ? 'rgba(74,222,128,0.2)' : 'rgba(255,77,106,0.2)'}` }}>
+              {result.msg}
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <button className="node-action-btn" onClick={onClose}>Cancelar</button>
+          <button className="node-action-btn node-action-primary" onClick={handleRun}
+            disabled={running || !canRun}>
+            <Play size={11} style={{ display: 'inline', marginRight: 4 }} />
+            {running ? 'Ejecutando…' : 'Run'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function nodeEffectiveStatus(node: NodeInfo): 'ready' | 'stale' | 'offline' {
   if (node.status === 'uninstalled') return 'offline'
   if (!node.registeredAt) return 'stale'
@@ -173,6 +280,7 @@ function NodeCard({ node, onProvision: _onProvision }: { node: NodeInfo; onProvi
   const isStale = effective === 'stale'
   const [reconnecting, setReconnecting] = useState(false)
   const [reconnected, setReconnected] = useState(false)
+  const [showRunModal, setShowRunModal] = useState(false)
 
   async function handleUninstall() {
     await fetch('/api/run-agent', {
@@ -254,12 +362,18 @@ function NodeCard({ node, onProvision: _onProvision }: { node: NodeInfo; onProvi
               {reconnecting ? 'Connecting…' : 'Reconnect'}
             </button>
           )}
+          {(isReady || reconnected) && node.agents.length > 0 && (
+            <button className="node-action-btn" onClick={() => setShowRunModal(true)}>
+              <Play size={11} style={{ display: 'inline', marginRight: 4 }} />Run script
+            </button>
+          )}
           <button className="node-action-btn node-action-danger" onClick={handleUninstall}>
             <Trash2 size={11} style={{ display: 'inline', marginRight: 4 }} />Uninstall
           </button>
         </div>
       )}
 
+      {showRunModal && <RunScriptModal node={node} onClose={() => setShowRunModal(false)} />}
     </div>
   )
 }
