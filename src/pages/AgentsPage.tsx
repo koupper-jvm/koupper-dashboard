@@ -96,13 +96,13 @@ function MarketplaceCard({ agent, onInstall, state }: {
         <span className="agent-author"><Star size={11} /> {agent.author}</span>
         {agent.persistent && <span className="persistent-pill">persistent</span>}
         <button
-          className={`btn-install ${state === 'ok' ? 'btn-installed' : ''}`}
+          className={`btn-install ${state === 'ok' ? 'btn-installed' : state === 'error' ? 'btn-install-error' : ''}`}
           onClick={() => state === 'idle' && onInstall(agent)}
           disabled={state !== 'idle'}
         >
-          {state === 'installing' && <RefreshCw size={13} className="spin" />}
-          {state === 'ok'         && <CheckCircle2 size={13} />}
-          {state === 'error'      && 'Error'}
+          {state === 'installing' && <><RefreshCw size={13} className="spin" /> Installing…</>}
+          {state === 'ok'         && <><CheckCircle2 size={13} /> Installed</>}
+          {state === 'error'      && 'Error — retry'}
           {state === 'idle'       && <><Download size={13} /> Install</>}
         </button>
       </div>
@@ -191,11 +191,12 @@ export function AgentsPage() {
       <p className="page-desc">Automate tasks with installed agents or discover new ones in the marketplace.</p>
 
       <div className="tab-bar">
-        <button className={`tab-btn ${tab === 'installed' ? 'active' : ''}`} onClick={() => setTab('installed')}>
-          Installed <span className="tab-count">{agents.length}</span>
+        <button className={`tab-btn tab-installed ${tab === 'installed' ? 'active' : ''}`} onClick={() => setTab('installed')}>
+          Installed <span className="tab-count tab-count-installed">{agents.length}</span>
         </button>
-        <button className={`tab-btn ${tab === 'browse' ? 'active' : ''}`} onClick={() => setTab('browse')}>
-          Marketplace <span className="tab-count">{registry.length || ''}</span>
+        <button className={`tab-btn tab-marketplace ${tab === 'browse' ? 'active' : ''}`} onClick={() => setTab('browse')}>
+          Marketplace {registry.length > 0 && <span className="tab-count tab-count-marketplace">{registry.length}</span>}
+          {registry.length === 0 && tab !== 'browse' && <span className="tab-count tab-count-marketplace">···</span>}
         </button>
       </div>
 

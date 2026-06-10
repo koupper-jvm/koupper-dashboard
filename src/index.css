@@ -518,13 +518,23 @@ pre, code { font-family: var(--mono); }
   display: flex; align-items: center; gap: 8px;
 }
 .tab-btn:hover { color: var(--text); }
-.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-installed.active       { color: var(--accent);    border-bottom-color: var(--accent); }
+.tab-marketplace.active     { color: var(--accent-2); border-bottom-color: var(--accent-2); }
+.tab-installed:hover        { color: var(--accent); }
+.tab-marketplace:hover      { color: var(--accent-2); }
 .tab-count {
   font-size: 11px; font-weight: 600;
-  background: var(--accent-dim); color: var(--accent);
-  border: 1px solid rgba(0,242,254,0.15);
   border-radius: 999px; padding: 1px 7px;
 }
+.tab-count-installed  {
+  background: var(--accent-dim); color: var(--accent);
+  border: 1px solid rgba(0,242,254,0.15);
+}
+.tab-count-marketplace {
+  background: var(--accent-2-dim); color: var(--accent-2);
+  border: 1px solid rgba(255,0,122,0.2);
+}
+.tab-count { font-size: 11px; font-weight: 600; border-radius: 999px; padding: 1px 7px; }
 
 /* Agents page — full-height split mode */
 .agents-page-split {
@@ -831,7 +841,7 @@ pre, code { font-family: var(--mono); }
   display: flex; align-items: center; justify-content: space-between;
   padding: 14px 18px; border-bottom: 1px solid var(--border);
 }
-.modal-title { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; color: var(--cyan); }
+.modal-title { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; color: var(--accent); }
 .modal-close {
   background: none; border: none; cursor: pointer;
   color: var(--muted); padding: 4px; border-radius: 6px;
@@ -846,7 +856,7 @@ pre, code { font-family: var(--mono); }
   padding: 4px 12px; font-size: 12px; font-family: var(--mono);
   color: var(--muted); cursor: pointer; transition: all 0.15s;
 }
-.modal-tab:hover, .modal-tab.active { color: var(--cyan); border-color: var(--cyan); background: rgba(0,242,254,0.06); }
+.modal-tab:hover, .modal-tab.active { color: var(--accent); border-color: var(--accent); background: rgba(0,242,254,0.06); }
 .modal-code-body { overflow: auto; flex: 1; padding: 16px; }
 .modal-loading { color: var(--muted); font-size: 13px; padding: 20px; text-align: center; }
 .modal-pre {
@@ -1012,11 +1022,18 @@ pre, code { font-family: var(--mono); }
   color: #030305;
   box-shadow: 0 0 20px rgba(0,242,254,0.3);
 }
-.btn-install:disabled { opacity: 0.4; cursor: default; }
+.btn-install:disabled { cursor: default; }
 .btn-installed {
   background: var(--green-dim) !important;
   color: var(--green) !important;
   border-color: rgba(74,222,128,0.2) !important;
+  opacity: 1 !important;
+}
+.btn-install-error {
+  background: rgba(239,68,68,0.1) !important;
+  color: #f87171 !important;
+  border-color: rgba(239,68,68,0.2) !important;
+  opacity: 1 !important;
 }
 
 .icon-btn {
@@ -1979,7 +1996,7 @@ pre, code { font-family: var(--mono); }
 .setup-config-row.disabled { opacity: 0.5; }
 .setup-config-pos   { font-size: 10px; font-weight: 700; color: var(--muted); font-family: var(--mono); }
 .setup-config-name  { font-weight: 700; font-size: 12px; color: var(--text); }
-.setup-config-model { font-family: var(--mono); font-size: 11px; color: var(--cyan); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.setup-config-model { font-family: var(--mono); font-size: 11px; color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .setup-config-url   { font-family: var(--mono); font-size: 10px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .setup-config-empty { font-size: 11px; color: var(--muted); font-style: italic; padding: 6px 0; }
 .setup-config-badge { font-size: 10px; font-weight: 700; border-radius: 999px; padding: 2px 8px; white-space: nowrap; }
