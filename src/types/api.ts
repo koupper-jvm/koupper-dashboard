@@ -11,6 +11,19 @@ export interface Job {
   pipelineTotal?: number | null
 }
 
+export interface JobDetail {
+  id?: string
+  fileName?: string
+  functionName?: string
+  scriptPath?: string
+  queue?: string
+  clientId?: string
+  submittedAt?: string
+  input?: unknown
+  params?: Record<string, string>
+  env?: Record<string, string>
+}
+
 export interface ObservabilityData {
   jobsPerMin: string
   successRate: string
