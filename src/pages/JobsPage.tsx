@@ -115,6 +115,38 @@ function InputView({ input }: { input: unknown }) {
   )
 }
 
+// Parse Kotlin data class toString() format: "ClassName(key=value, key2=[a, b])"
+function parseKotlinDataClass(str: string): Record<string, unknown> | null {
+  const match = str.match(/^(\w+)\(([\s\S]*)\)$/)
+  if (!match) return null
+  const result: Record<string, unknown> = {}
+  const content = match[2]
+  let depth = 0, current = '', key = '', parsingKey = true
+  for (let i = 0; i < content.length; i++) {
+    const ch = content[i]
+    if (ch === '[' || ch === '(') depth++
+    else if (ch === ']' || ch === ')') depth--
+    if (parsingKey && ch === '=') { key = current.trim(); current = ''; parsingKey = false }
+    else if (!parsingKey && depth === 0 && ch === ',' && content[i + 1] === ' ') {
+      result[key] = parseKotlinValue(current.trim()); current = ''; key = ''; parsingKey = true; i++
+    } else { current += ch }
+  }
+  if (key) result[key] = parseKotlinValue(current.trim())
+  return Object.keys(result).length > 0 ? result : null
+}
+
+function parseKotlinValue(str: string): unknown {
+  if (str === 'null') return null
+  if (str === 'true') return true
+  if (str === 'false') return false
+  if (str.startsWith('[') && str.endsWith(']')) {
+    const inner = str.slice(1, -1).trim()
+    return inner ? inner.split(', ').map(s => parseKotlinValue(s.trim())) : []
+  }
+  const n = Number(str); if (!isNaN(n) && str !== '') return n
+  return str
+}
+
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 20 }}>
@@ -152,15 +184,22 @@ function JobDetailPanel({ jobRef, onRetry, onPurge }: {
       .finally(() => setLoading(false))
   }, [jobRef.id, jobRef.queue])
 
-  const status  = job?.status ?? 'UNKNOWN'
-  const color   = STATUS_COLOR[status] ?? '#6e7681'
-  const name    = detail?.fileName ?? scriptName(jobRef.id)
-  const isProv  = name === 'NodeProvisionerAgent'
-  const result  = job?.result ?? null
+  const status = job?.status ?? 'UNKNOWN'
+  const color  = STATUS_COLOR[status] ?? '#6e7681'
+  const name   = detail?.fileName ?? scriptName(jobRef.id)
+  const isProv = name === 'NodeProvisionerAgent'
 
+  // detail.result (from file) takes priority over snapshot result (often null due to server bug)
+  const rawResult = (detail as Record<string, unknown> | null)?.result as string | null ?? job?.result ?? null
+
+  // Try JSON parse first, then Kotlin toString() parse
   let parsedResult: Record<string, unknown> | null = null
-  if (result) {
-    try { parsedResult = JSON.parse(result) } catch { /* plain string */ }
+  if (rawResult) {
+    try {
+      parsedResult = JSON.parse(rawResult)
+    } catch {
+      parsedResult = parseKotlinDataClass(rawResult)
+    }
   }
   const isProvResult = parsedResult && 'steps' in parsedResult && 'success' in parsedResult
 
@@ -241,12 +280,12 @@ function JobDetailPanel({ jobRef, onRetry, onPurge }: {
 
         {/* Result */}
         <Section title="Resultado">
-          {result
+          {rawResult
             ? isProvResult
               ? <ProvisionResultView result={parsedResult!} />
               : parsedResult
                 ? <InputView input={parsedResult} />
-                : <pre style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: 'var(--mono)', whiteSpace: 'pre-wrap', wordBreak: 'break-all', margin: 0 }}>{result}</pre>
+                : <pre style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: 'var(--mono)', whiteSpace: 'pre-wrap', wordBreak: 'break-all', margin: 0 }}>{rawResult}</pre>
             : status === 'PROCESSING'
               ? <span style={{ fontSize: 12, color: 'var(--accent)' }}>Ejecutando…</span>
               : <span style={{ fontSize: 12, color: 'var(--muted)' }}>Sin resultado aún</span>
