@@ -40,9 +40,7 @@ function JobCard({ job, selected, onClick }: { job: Job; selected: boolean; onCl
       </div>
       <div className="job-card-meta">
         <span className="job-card-queue" title="Queue">⬡ {job.queue}</span>
-        <span className="job-card-time" title={`Started at ${job.time}`}>
-          <span className="meta-label">started</span> {job.time}
-        </span>
+        <span className="job-card-time"><span className="meta-label">started</span> {job.time}</span>
         {job.status === 'PROCESSING' && elapsedSince(job.time) && (
           <span className="job-card-elapsed">{elapsedSince(job.time)}</span>
         )}
@@ -60,7 +58,6 @@ function JobCard({ job, selected, onClick }: { job: Job; selected: boolean; onCl
   )
 }
 
-// Detect and render ProvisionResult structure
 function ProvisionResultView({ result }: { result: Record<string, unknown> }) {
   const success = result.success as boolean
   const steps   = (result.steps as string[]) ?? []
@@ -73,10 +70,10 @@ function ProvisionResultView({ result }: { result: Record<string, unknown> }) {
           : <XCircle size={16} style={{ color: '#ff007a', flexShrink: 0 }} />
         }
         <span style={{ fontSize: 13, fontWeight: 600, color: success ? '#4ade80' : '#ff007a' }}>
-          {result.action as string} {success ? 'exitoso' : 'fallido'}
+          {String(result.action ?? '')} {success ? 'exitoso' : 'fallido'}
         </span>
         <code style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'var(--mono)', marginLeft: 'auto' }}>
-          {result.host as string}
+          {String(result.host ?? '')}
         </code>
       </div>
       {steps.length > 0 && (
@@ -98,19 +95,18 @@ function ProvisionResultView({ result }: { result: Record<string, unknown> }) {
   )
 }
 
-// Render input object as a clean key-value table
 function InputView({ input }: { input: unknown }) {
-  if (!input || typeof input !== 'object') {
-    return <pre style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'var(--mono)', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{String(input)}</pre>
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    return <pre style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'var(--mono)', whiteSpace: 'pre-wrap', wordBreak: 'break-all', margin: 0 }}>{JSON.stringify(input, null, 2)}</pre>
   }
   const entries = Object.entries(input as Record<string, unknown>)
     .filter(([, v]) => v !== null && v !== undefined && v !== '')
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
       {entries.map(([k, v]) => (
         <div key={k} style={{ display: 'flex', gap: 8, fontSize: 12 }}>
           <span style={{ color: 'var(--muted)', fontFamily: 'var(--mono)', minWidth: 120, flexShrink: 0 }}>{k}</span>
-          <span style={{ color: 'var(--text-secondary)', wordBreak: 'break-all', fontFamily: typeof v === 'string' ? 'inherit' : 'var(--mono)' }}>
+          <span style={{ color: 'var(--text-secondary)', wordBreak: 'break-all', fontFamily: typeof v === 'object' ? 'var(--mono)' : 'inherit' }}>
             {typeof v === 'object' ? JSON.stringify(v) : String(v)}
           </span>
         </div>
@@ -122,7 +118,7 @@ function InputView({ input }: { input: unknown }) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 20 }}>
-      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 10, paddingBottom: 6, borderBottom: '1px solid var(--border)' }}>
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8, paddingBottom: 6, borderBottom: '1px solid var(--border)' }}>
         {title}
       </div>
       {children}
@@ -130,73 +126,85 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   )
 }
 
-function JobDetailPanel({ job, onRetry, onPurge }: {
-  job: { id: string; queue: string; status: string; result?: string | null; time: string }
+// The panel only needs the job ref — it finds status/result from context internally
+function JobDetailPanel({ jobRef, onRetry, onPurge }: {
+  jobRef: { id: string; queue: string }
   onRetry: () => void
   onPurge: () => void
 }) {
   const navigate = useNavigate()
-  const { setSelectedJob } = useApp()
-  const [detail, setDetail]   = useState<JobDetail | null>(null)
-  const [loadingDetail, setLoadingDetail] = useState(false)
+  const { snapshot, setSelectedJob } = useApp()
+  const [detail, setDetail]         = useState<JobDetail | null>(null)
+  const [loadingDetail, setLoading] = useState(false)
+
+  // Find full job data from snapshot (status, result, time)
+  const job: Job | undefined = snapshot?.jobs.find(
+    j => j.id === jobRef.id && j.queue === jobRef.queue
+  )
 
   useEffect(() => {
     setDetail(null)
-    setLoadingDetail(true)
-    fetch(`/api/jobs/detail/${job.queue}/${job.id}`)
+    setLoading(true)
+    fetch(`/api/jobs/detail/${jobRef.queue}/${jobRef.id}`)
       .then(r => r.json())
-      .then(d => { if (d.ok && d.found) setDetail(d.job) })
+      .then(d => { if (d.ok && d.found) setDetail(d.job as JobDetail) })
       .catch(() => {})
-      .finally(() => setLoadingDetail(false))
-  }, [job.id, job.queue])
+      .finally(() => setLoading(false))
+  }, [jobRef.id, jobRef.queue])
 
-  const name   = detail?.fileName ?? scriptName(job.id)
-  const color  = STATUS_COLOR[job.status] ?? '#6e7681'
-  const isProv = name === 'NodeProvisionerAgent'
+  const status  = job?.status ?? 'UNKNOWN'
+  const color   = STATUS_COLOR[status] ?? '#6e7681'
+  const name    = detail?.fileName ?? scriptName(jobRef.id)
+  const isProv  = name === 'NodeProvisionerAgent'
+  const result  = job?.result ?? null
 
-  // Try to parse result as JSON
   let parsedResult: Record<string, unknown> | null = null
-  if (job.result) {
-    try { parsedResult = JSON.parse(job.result) } catch { /* plain string */ }
+  if (result) {
+    try { parsedResult = JSON.parse(result) } catch { /* plain string */ }
   }
-
-  const isProvisionResult = parsedResult && 'steps' in parsedResult && 'success' in parsedResult
+  const isProvResult = parsedResult && 'steps' in parsedResult && 'success' in parsedResult
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Header */}
-      <div style={{ padding: '0 0 16px 0', borderBottom: '1px solid var(--border)', marginBottom: 20, flexShrink: 0 }}>
+      <div style={{ paddingBottom: 16, borderBottom: '1px solid var(--border)', marginBottom: 20, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--text-primary)', marginBottom: 4 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, fontFamily: 'var(--mono)', marginBottom: 6 }}>
               {name}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color }}>● {job.status}</span>
-              <span style={{ fontSize: 11, color: 'var(--muted)' }}>⬡ {job.queue}</span>
-              {job.status === 'PROCESSING' && elapsedSince(job.time) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color }}>● {status}</span>
+              <span style={{ fontSize: 11, color: 'var(--muted)' }}>⬡ {jobRef.queue}</span>
+              {status === 'PROCESSING' && job?.time && elapsedSince(job.time) && (
                 <span style={{ fontSize: 11, color: '#00f2fe' }}>{elapsedSince(job.time)}</span>
               )}
             </div>
           </div>
           <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-            <button className="icon-btn" title="Retry failed jobs in queue" onClick={onRetry}><RotateCcw size={14} /></button>
-            <button className="icon-btn icon-btn-danger" title="Purge failed/dead jobs" onClick={onPurge}><Trash2 size={14} /></button>
+            <button className="icon-btn" title="Reintentar jobs fallidos en esta cola" onClick={onRetry}><RotateCcw size={14} /></button>
+            <button className="icon-btn icon-btn-danger" title="Purgar jobs fallidos/muertos" onClick={onPurge}><Trash2 size={14} /></button>
           </div>
         </div>
       </div>
 
       {/* Scrollable body */}
-      <div style={{ flex: 1, overflowY: 'auto', paddingRight: 4 }}>
+      <div style={{ flex: 1, overflowY: 'auto' }}>
 
-        {/* Metadata */}
-        <Section title="Info">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12 }}>
-              <Hash size={12} style={{ color: 'var(--muted)', flexShrink: 0 }} />
-              <span style={{ color: 'var(--muted)', minWidth: 80 }}>ID</span>
-              <code style={{ fontSize: 10, color: 'var(--muted)', fontFamily: 'var(--mono)', wordBreak: 'break-all' }}>{job.id}</code>
+        <Section title="Información">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12 }}>
+              <Hash size={12} style={{ color: 'var(--muted)', flexShrink: 0, marginTop: 2 }} />
+              <span style={{ color: 'var(--muted)', minWidth: 80, flexShrink: 0 }}>ID</span>
+              <code style={{ fontSize: 10, color: 'var(--muted)', fontFamily: 'var(--mono)', wordBreak: 'break-all' }}>{jobRef.id}</code>
             </div>
+            {job?.time && (
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12 }}>
+                <Clock size={12} style={{ color: 'var(--muted)', flexShrink: 0 }} />
+                <span style={{ color: 'var(--muted)', minWidth: 80 }}>Iniciado</span>
+                <span style={{ color: 'var(--text-secondary)' }}>{job.time}</span>
+              </div>
+            )}
             {detail?.submittedAt && (
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12 }}>
                 <Clock size={12} style={{ color: 'var(--muted)', flexShrink: 0 }} />
@@ -221,43 +229,37 @@ function JobDetailPanel({ job, onRetry, onPurge }: {
           </div>
         </Section>
 
-        {/* Input */}
-        {(detail?.input || loadingDetail) && (
-          <Section title={isProv ? 'Parámetros de provisión' : 'Input'}>
-            {loadingDetail
-              ? <span style={{ fontSize: 12, color: 'var(--muted)' }}>Cargando…</span>
-              : <InputView input={detail?.input} />
-            }
-          </Section>
-        )}
+        {/* Input — show while loading or once loaded */}
+        <Section title={isProv ? 'Parámetros' : 'Input'}>
+          {loadingDetail
+            ? <span style={{ fontSize: 12, color: 'var(--muted)' }}>Cargando…</span>
+            : detail?.input
+              ? <InputView input={detail.input} />
+              : <span style={{ fontSize: 12, color: 'var(--muted)' }}>Sin input disponible</span>
+          }
+        </Section>
 
         {/* Result */}
-        {job.result && (
-          <Section title="Resultado">
-            {isProvisionResult
+        <Section title="Resultado">
+          {result
+            ? isProvResult
               ? <ProvisionResultView result={parsedResult!} />
               : parsedResult
                 ? <InputView input={parsedResult} />
-                : <pre style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: 'var(--mono)', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{job.result}</pre>
-            }
-          </Section>
-        )}
-
-        {/* Empty state for processing */}
-        {job.status === 'PROCESSING' && !job.result && !detail?.input && !loadingDetail && (
-          <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--muted)', fontSize: 13 }}>
-            <div style={{ marginBottom: 8 }}>Ejecutando…</div>
-            <div style={{ fontSize: 11 }}>Ver logs en tiempo real en la pestaña Logs</div>
-          </div>
-        )}
+                : <pre style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: 'var(--mono)', whiteSpace: 'pre-wrap', wordBreak: 'break-all', margin: 0 }}>{result}</pre>
+            : status === 'PROCESSING'
+              ? <span style={{ fontSize: 12, color: 'var(--accent)' }}>Ejecutando…</span>
+              : <span style={{ fontSize: 12, color: 'var(--muted)' }}>Sin resultado aún</span>
+          }
+        </Section>
       </div>
 
       {/* Footer: link to logs */}
-      <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 12, flexShrink: 0 }}>
+      <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 8, flexShrink: 0 }}>
         <button
           style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: 0 }}
           onClick={() => {
-            setSelectedJob({ queue: job.queue, id: job.id })
+            setSelectedJob({ queue: jobRef.queue, id: jobRef.id })
             navigate('/logs')
           }}
         >
@@ -282,10 +284,6 @@ export function JobsPage() {
 
   const jobs = snapshot?.jobs ?? []
   const filtered = filter === 'all' ? jobs : jobs.filter(j => j.status === filter)
-
-  const selectedJobData = selectedJob
-    ? jobs.find(j => j.id === selectedJob.id && j.queue === selectedJob.queue) ?? null
-    : null
 
   async function retryJob() {
     if (!selectedJob) return
@@ -323,7 +321,9 @@ export function JobsPage() {
           ))}
         </div>
 
-        <div className="jobs-count" style={{ marginTop: 12 }}>{filtered.length} job{filtered.length !== 1 ? 's' : ''}</div>
+        <div className="jobs-count" style={{ marginTop: 12 }}>
+          {filtered.length} job{filtered.length !== 1 ? 's' : ''}
+        </div>
 
         <div className="jobs-cards">
           {filtered.length === 0
@@ -336,18 +336,14 @@ export function JobsPage() {
         </div>
       </div>
 
-      {/* Right: job detail */}
-      <div className="jobs-log-col" style={{ padding: '24px 20px' }}>
-        {selectedJobData
-          ? <JobDetailPanel
-              job={selectedJobData}
-              onRetry={retryJob}
-              onPurge={purgeJob}
-            />
+      {/* Right: job detail — renders whenever selectedJob is set */}
+      <div className="jobs-log-col">
+        {selectedJob
+          ? <JobDetailPanel jobRef={selectedJob} onRetry={retryJob} onPurge={purgeJob} />
           : (
-            <div className="empty-state" style={{ flex: 1, flexDirection: 'column', gap: 12, height: '100%', justifyContent: 'center' }}>
-              <FileText size={32} strokeWidth={1.4} style={{ color: 'var(--muted-2)' }} />
-              <span>Selecciona un job para ver su detalle</span>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 12, color: 'var(--muted)' }}>
+              <FileText size={32} strokeWidth={1.4} style={{ color: 'var(--muted-2, #2a3a55)' }} />
+              <span style={{ fontSize: 13 }}>Selecciona un job para ver su detalle</span>
             </div>
           )
         }
