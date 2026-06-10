@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useNavigate } from 'react-router-dom'
 import { Server, Wifi, WifiOff, Bot, Clock, Plus, Trash2, X, Play } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import type { NodeInfo } from '../hooks/useNodes'
@@ -159,6 +160,7 @@ function ProvisionModal({ onClose }: { onClose: () => void }) {
 }
 
 function RunScriptModal({ node, onClose }: { node: NodeInfo; onClose: () => void }) {
+  const navigate = useNavigate()
   const agents = node.agents ?? []
   const [script, setScript]   = useState(agents[0] ?? '')
   const [sshUser, setSshUser] = useState(node.sshUser ?? '')
@@ -166,12 +168,12 @@ function RunScriptModal({ node, onClose }: { node: NodeInfo; onClose: () => void
   const [sshPass, setSshPass] = useState('')
   const [useKey, setUseKey]   = useState(!!node.sshKeyPath)
   const [running, setRunning] = useState(false)
-  const [result, setResult]   = useState<{ ok: boolean; msg: string } | null>(null)
+  const [jobId, setJobId]     = useState<string | null>(null)
 
   async function handleRun() {
     if (!script || !sshUser || (useKey ? !sshKey : !sshPass)) return
     setRunning(true)
-    setResult(null)
+    setJobId(null)
     try {
       await fetch(`/api/nodes/update/${encodeURIComponent(node.host)}`, {
         method: 'POST',
@@ -194,9 +196,18 @@ function RunScriptModal({ node, onClose }: { node: NodeInfo; onClose: () => void
         }),
       })
       const data = await res.json()
-      setResult({ ok: !!data.ok, msg: data.ok ? `✓ ${script.replace(/\.kts$/, '')} lanzado en ${node.host}` : (data.error ?? 'Error') })
+      if (data.ok) {
+        setJobId(data.jobId)
+      } else {
+        setJobId(null)
+        // show error inline
+        setRunning(false)
+        alert(data.error ?? 'Error al encolar el job')
+        return
+      }
     } catch (e: any) {
-      setResult({ ok: false, msg: e?.message ?? 'Error de red' })
+      setRunning(false)
+      return
     }
     setRunning(false)
   }
@@ -213,45 +224,62 @@ function RunScriptModal({ node, onClose }: { node: NodeInfo; onClose: () => void
           <button className="modal-close" onClick={onClose}><X size={14} /></button>
         </div>
 
-        <div className="node-run-modal-body">
-          <div className="run-modal-field">
-            <label className="run-modal-label">Agente</label>
-            {agents.length === 0
-              ? <span style={{ fontSize: 11, color: 'var(--muted)' }}>Sin agentes registrados</span>
-              : <select className="node-run-select" value={script} onChange={e => setScript(e.target.value)}>
-                  {agents.map(a => <option key={a} value={a}>{a.replace(/\.kts$/, '')}</option>)}
-                </select>
-            }
-          </div>
-
-          <div className="run-modal-field">
-            <label className="run-modal-label">Usuario SSH</label>
-            <input className="modal-input" value={sshUser} onChange={e => setSshUser(e.target.value)} placeholder="pi" autoFocus />
-          </div>
-
-          <div className="run-modal-field">
-            <label className="run-modal-label">Autenticación</label>
-            <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
-              <button className={`run-modal-tab ${useKey ? 'active' : ''}`} onClick={() => setUseKey(true)}>Clave SSH</button>
-              <button className={`run-modal-tab ${!useKey ? 'active' : ''}`} onClick={() => setUseKey(false)}>Contraseña</button>
+        {jobId ? (
+          <div className="node-run-modal-body">
+            <div className="run-modal-result ok">
+              Job encolado: <code style={{ fontFamily: 'var(--mono)', fontSize: 10 }}>{jobId}</code>
             </div>
-            {useKey
-              ? <input className="modal-input" value={sshKey} onChange={e => setSshKey(e.target.value)} placeholder="~/.ssh/id_rsa" />
-              : <input className="modal-input" type="password" value={sshPass} onChange={e => setSshPass(e.target.value)} placeholder="contraseña SSH" />
-            }
+            <p style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.5 }}>
+              El agente SSH conectará al nodo y lanzará el script en background.
+            </p>
           </div>
-
-          {result && (
-            <div className={`run-modal-result ${result.ok ? 'ok' : 'err'}`}>{result.msg}</div>
-          )}
-        </div>
+        ) : (
+          <div className="node-run-modal-body">
+            <div className="run-modal-field">
+              <label className="run-modal-label">Agente</label>
+              {agents.length === 0
+                ? <span style={{ fontSize: 11, color: 'var(--muted)' }}>Sin agentes registrados</span>
+                : <select className="node-run-select" value={script} onChange={e => setScript(e.target.value)}>
+                    {agents.map(a => <option key={a} value={a}>{a.replace(/\.kts$/, '')}</option>)}
+                  </select>
+              }
+            </div>
+            <div className="run-modal-field">
+              <label className="run-modal-label">Usuario SSH</label>
+              <input className="modal-input" value={sshUser} onChange={e => setSshUser(e.target.value)} placeholder="pi" autoFocus />
+            </div>
+            <div className="run-modal-field">
+              <label className="run-modal-label">Autenticación</label>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                <button className={`run-modal-tab ${useKey ? 'active' : ''}`} onClick={() => setUseKey(true)}>Clave SSH</button>
+                <button className={`run-modal-tab ${!useKey ? 'active' : ''}`} onClick={() => setUseKey(false)}>Contraseña</button>
+              </div>
+              {useKey
+                ? <input className="modal-input" value={sshKey} onChange={e => setSshKey(e.target.value)} placeholder="~/.ssh/id_rsa" />
+                : <input className="modal-input" type="password" value={sshPass} onChange={e => setSshPass(e.target.value)} placeholder="contraseña SSH" />
+              }
+            </div>
+          </div>
+        )}
 
         <div className="node-run-modal-footer">
-          <button className="node-action-btn" onClick={onClose}>Cancelar</button>
-          <button className="node-action-btn node-action-primary" onClick={handleRun} disabled={running || !canRun}>
-            <Play size={11} style={{ display: 'inline', marginRight: 4 }} />
-            {running ? 'Ejecutando…' : 'Run'}
-          </button>
+          {jobId ? (
+            <>
+              <button className="node-action-btn" onClick={onClose}>Cerrar</button>
+              <button className="node-action-btn node-action-primary"
+                onClick={() => { onClose(); navigate('/jobs') }}>
+                Ver job →
+              </button>
+            </>
+          ) : (
+            <>
+              <button className="node-action-btn" onClick={onClose}>Cancelar</button>
+              <button className="node-action-btn node-action-primary" onClick={handleRun} disabled={running || !canRun}>
+                <Play size={11} style={{ display: 'inline', marginRight: 4 }} />
+                {running ? 'Conectando SSH…' : 'Run'}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>,
