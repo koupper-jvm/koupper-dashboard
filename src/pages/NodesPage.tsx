@@ -162,57 +162,59 @@ function ProvisionModal({ onClose }: { onClose: () => void }) {
 function RunScriptModal({ node, onClose }: { node: NodeInfo; onClose: () => void }) {
   const navigate = useNavigate()
   const agents = node.agents ?? []
+  // Credentials: pre-filled from saved node data
+  const hasSavedCreds = !!(node.sshUser && node.sshKeyPath)
   const [script, setScript]   = useState(agents[0] ?? '')
   const [sshUser, setSshUser] = useState(node.sshUser ?? '')
   const [sshKey, setSshKey]   = useState(node.sshKeyPath ?? '')
   const [sshPass, setSshPass] = useState('')
-  const [useKey, setUseKey]   = useState(!!node.sshKeyPath)
+  const [useKey, setUseKey]   = useState(!!node.sshKeyPath || !node.sshUser)
   const [running, setRunning] = useState(false)
   const [jobId, setJobId]     = useState<string | null>(null)
+  const [showCreds, setShowCreds] = useState(!hasSavedCreds)
 
-  async function handleRun() {
-    if (!script || !sshUser || (useKey ? !sshKey : !sshPass)) return
-    setRunning(true)
-    setJobId(null)
-    try {
+  async function enqueue(user: string, key: string | undefined, pass: string | undefined, scriptName: string) {
+    if (key) {
       await fetch(`/api/nodes/update/${encodeURIComponent(node.host)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sshUser, ...(useKey ? { sshKeyPath: sshKey } : {}) }),
+        body: JSON.stringify({ sshUser: user, sshKeyPath: key }),
       })
-      const res = await fetch('/api/run-agent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: 'NodeProvisionerAgent',
-          queue: 'default',
-          env: {
-            NODE_ACTION: 'run',
-            NODE_HOST: node.host,
-            NODE_USER: sshUser,
-            NODE_SCRIPT: script.replace(/\.kts$/, ''),
-            ...(useKey ? { NODE_KEY_PATH: sshKey } : { NODE_PASSWORD: sshPass }),
-          },
-        }),
-      })
-      const data = await res.json()
-      if (data.ok) {
-        setJobId(data.jobId)
-      } else {
-        setJobId(null)
-        // show error inline
-        setRunning(false)
-        alert(data.error ?? 'Error al encolar el job')
-        return
-      }
-    } catch (e: any) {
-      setRunning(false)
-      return
     }
+    const res = await fetch('/api/run-agent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'NodeProvisionerAgent',
+        queue: 'default',
+        env: {
+          NODE_ACTION: 'run',
+          NODE_HOST: node.host,
+          NODE_USER: user,
+          NODE_SCRIPT: scriptName.replace(/\.kts$/, ''),
+          ...(key ? { NODE_KEY_PATH: key } : { NODE_PASSWORD: pass }),
+        },
+      }),
+    })
+    return res.json()
+  }
+
+  async function handleRun() {
+    if (!script) return
+    const user = sshUser || node.sshUser || ''
+    const key  = useKey ? (sshKey || node.sshKeyPath) : undefined
+    const pass = !useKey ? sshPass : undefined
+    if (!user || (useKey ? !key : !pass)) return
+    setRunning(true)
+    try {
+      const data = await enqueue(user, key, pass, script)
+      if (data.ok) setJobId(data.jobId)
+      else setShowCreds(true)  // show form again with error context
+    } catch {}
     setRunning(false)
   }
 
-  const canRun = !!(script && sshUser && (useKey ? sshKey : sshPass))
+  const canRun = !!(script && (sshUser || node.sshUser) && (useKey ? (sshKey || node.sshKeyPath) : sshPass))
 
   return createPortal(
     <div className="modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}>
@@ -227,38 +229,53 @@ function RunScriptModal({ node, onClose }: { node: NodeInfo; onClose: () => void
         {jobId ? (
           <div className="node-run-modal-body">
             <div className="run-modal-result ok">
-              Job encolado: <code style={{ fontFamily: 'var(--mono)', fontSize: 10 }}>{jobId}</code>
+              Job encolado — <code style={{ fontFamily: 'var(--mono)', fontSize: 10 }}>{jobId}</code>
             </div>
-            <p style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.5 }}>
-              El agente SSH conectará al nodo y lanzará el script en background.
-            </p>
           </div>
         ) : (
           <div className="node-run-modal-body">
+            {/* Agent selector — always shown */}
             <div className="run-modal-field">
               <label className="run-modal-label">Agente</label>
               {agents.length === 0
                 ? <span style={{ fontSize: 11, color: 'var(--muted)' }}>Sin agentes registrados</span>
-                : <select className="node-run-select" value={script} onChange={e => setScript(e.target.value)}>
+                : <select className="node-run-select" value={script} onChange={e => setScript(e.target.value)} autoFocus>
                     {agents.map(a => <option key={a} value={a}>{a.replace(/\.kts$/, '')}</option>)}
                   </select>
               }
             </div>
-            <div className="run-modal-field">
-              <label className="run-modal-label">Usuario SSH</label>
-              <input className="modal-input" value={sshUser} onChange={e => setSshUser(e.target.value)} placeholder="pi" autoFocus />
-            </div>
-            <div className="run-modal-field">
-              <label className="run-modal-label">Autenticación</label>
-              <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
-                <button className={`run-modal-tab ${useKey ? 'active' : ''}`} onClick={() => setUseKey(true)}>Clave SSH</button>
-                <button className={`run-modal-tab ${!useKey ? 'active' : ''}`} onClick={() => setUseKey(false)}>Contraseña</button>
+
+            {/* Saved creds summary — shown when creds exist and form is hidden */}
+            {hasSavedCreds && !showCreds && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 10, color: 'var(--muted)' }}>
+                  SSH: <code style={{ fontFamily: 'var(--mono)' }}>{node.sshUser}</code> · {node.sshKeyPath}
+                </span>
+                <button style={{ fontSize: 10, background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer' }}
+                  onClick={() => setShowCreds(true)}>cambiar</button>
               </div>
-              {useKey
-                ? <input className="modal-input" value={sshKey} onChange={e => setSshKey(e.target.value)} placeholder="~/.ssh/id_rsa" />
-                : <input className="modal-input" type="password" value={sshPass} onChange={e => setSshPass(e.target.value)} placeholder="contraseña SSH" />
-              }
-            </div>
+            )}
+
+            {/* Creds form — shown on first run or when user wants to change */}
+            {showCreds && (
+              <>
+                <div className="run-modal-field">
+                  <label className="run-modal-label">Usuario SSH</label>
+                  <input className="modal-input" value={sshUser} onChange={e => setSshUser(e.target.value)} placeholder="pi" />
+                </div>
+                <div className="run-modal-field">
+                  <label className="run-modal-label">Autenticación</label>
+                  <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                    <button className={`run-modal-tab ${useKey ? 'active' : ''}`} onClick={() => setUseKey(true)}>Clave SSH</button>
+                    <button className={`run-modal-tab ${!useKey ? 'active' : ''}`} onClick={() => setUseKey(false)}>Contraseña</button>
+                  </div>
+                  {useKey
+                    ? <input className="modal-input" value={sshKey} onChange={e => setSshKey(e.target.value)} placeholder="~/.ssh/id_rsa" />
+                    : <input className="modal-input" type="password" value={sshPass} onChange={e => setSshPass(e.target.value)} placeholder="contraseña SSH" />
+                  }
+                </div>
+              </>
+            )}
           </div>
         )}
 
