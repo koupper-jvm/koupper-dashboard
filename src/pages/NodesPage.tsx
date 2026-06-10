@@ -158,46 +158,53 @@ function ProvisionModal({ onClose }: { onClose: () => void }) {
 }
 
 function RunScriptInput({ node, onClose }: { node: NodeInfo; onClose: () => void }) {
-  const [script, setScript] = useState('')
+  const agents = node.agents ?? []
+  const [selected, setSelected] = useState(agents[0] ?? '')
   const [running, setRunning] = useState(false)
+  const [done, setDone] = useState(false)
 
   async function handleRun() {
-    if (!script.trim()) return
+    if (!selected) return
     setRunning(true)
     try {
       await fetch('/api/run-agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: 'NodeProvisionerAgent',
-          queue: 'default',
-          env: {
-            NODE_HOST: node.host,
-            NODE_ACTION: 'run',
-            NODE_SCRIPT: script.trim(),
-          },
+          name: selected.replace(/\.kts$/, ''),
+          queue: `node-${node.host}`,
         }),
       })
-    } catch {
-      // ignore
-    }
+      setDone(true)
+      setTimeout(onClose, 1500)
+    } catch {}
     setRunning(false)
-    onClose()
+  }
+
+  if (agents.length === 0) {
+    return (
+      <div className="node-run-row">
+        <span style={{ fontSize: 10, color: 'var(--muted)' }}>No agents installed on this node</span>
+        <button className="node-action-btn" onClick={onClose}>✕</button>
+      </div>
+    )
   }
 
   return (
-    <div style={{ display: 'flex', gap: 6, alignItems: 'center', paddingTop: 6 }}>
-      <input
-        className="modal-input"
-        style={{ flex: 1, fontSize: 11 }}
-        placeholder="agent-name.kts"
-        value={script}
-        onChange={e => setScript(e.target.value)}
-        onKeyDown={e => { if (e.key === 'Enter') handleRun(); if (e.key === 'Escape') onClose() }}
-        autoFocus
-      />
-      <button className="node-action-btn" onClick={handleRun} disabled={running || !script.trim()}>
-        {running ? '…' : 'Run'}
+    <div className="node-run-row">
+      <select
+        className="node-run-select"
+        value={selected}
+        onChange={e => setSelected(e.target.value)}
+        disabled={running || done}
+      >
+        {agents.map(a => (
+          <option key={a} value={a}>{a.replace(/\.kts$/, '')}</option>
+        ))}
+      </select>
+      <button className="node-action-btn node-action-primary"
+        onClick={handleRun} disabled={running || done || !selected}>
+        {done ? '✓ Queued' : running ? '…' : 'Run'}
       </button>
       <button className="node-action-btn" onClick={onClose}>✕</button>
     </div>
