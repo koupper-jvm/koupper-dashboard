@@ -11,6 +11,20 @@ export interface Job {
   pipelineTotal?: number | null
 }
 
+export interface AgentSchemaField {
+  name: string
+  type: string
+  default?: string
+}
+
+export interface AgentSchema {
+  inputType?: string
+  outputType?: string
+  inputFields?: AgentSchemaField[]
+  outputFields?: AgentSchemaField[]
+  envVars?: Array<{ name: string; value?: string | null }>
+}
+
 export interface JobDetail {
   id?: string
   fileName?: string
@@ -22,6 +36,8 @@ export interface JobDetail {
   input?: unknown
   params?: Record<string, string>
   env?: Record<string, string>
+  logError?: string
+  schema?: AgentSchema
 }
 
 export interface ObservabilityData {

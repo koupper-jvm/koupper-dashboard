@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { RotateCcw, Trash2, FileText, CheckCircle2, XCircle, Clock, Hash, Layers, ChevronRight } from 'lucide-react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import type { Job, JobDetail } from '../types/api'
+import type { Job, JobDetail, AgentSchema, AgentSchemaField } from '../types/api'
 
 const STATUS_COLOR: Record<string, string> = {
   PROCESSING: '#00f2fe', DONE: '#4ade80', FAILED: '#ff007a',
@@ -147,6 +147,67 @@ function parseKotlinValue(str: string): unknown {
   return str
 }
 
+function FieldList({ fields }: { fields: AgentSchemaField[] }) {
+  return (
+    <div style={{ paddingLeft: 10, borderLeft: '2px solid var(--border)', marginTop: 6 }}>
+      {fields.map(f => (
+        <div key={f.name} style={{ display: 'flex', gap: 6, fontSize: 11, marginBottom: 3, fontFamily: 'var(--mono)' }}>
+          <span style={{ color: 'var(--text-secondary)', minWidth: 100, flexShrink: 0 }}>{f.name}</span>
+          <span style={{ color: '#7dd3fc' }}>{f.type}</span>
+          {f.default !== undefined && <span style={{ color: 'var(--muted)' }}>= {f.default}</span>}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function SchemaView({ schema }: { schema: AgentSchema }) {
+  const mono = { fontFamily: 'var(--mono)', fontSize: 12 }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {/* Input type */}
+      <div>
+        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 6 }}>Input</div>
+        {schema.inputType
+          ? <>
+              <code style={{ ...mono, color: 'var(--accent)' }}>{schema.inputType}</code>
+              {schema.inputFields && <FieldList fields={schema.inputFields} />}
+            </>
+          : <span style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>() — sin parámetros tipados</span>
+        }
+        {schema.envVars && schema.envVars.length > 0 && (
+          <div style={{ marginTop: 8 }}>
+            <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 4 }}>Env vars usadas</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {schema.envVars.map(ev => (
+                <div key={ev.name} style={{ display: 'flex', gap: 8, alignItems: 'baseline', fontSize: 11, fontFamily: 'var(--mono)' }}>
+                  <code style={{ color: '#fbbf24', flexShrink: 0 }}>{ev.name}</code>
+                  <span style={{ color: 'var(--muted)' }}>=</span>
+                  {ev.value != null
+                    ? <span style={{ color: 'var(--text-secondary)', wordBreak: 'break-all' }}>{ev.value}</span>
+                    : <span style={{ color: 'var(--muted)', fontStyle: 'italic' }}>not set</span>
+                  }
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+      {/* Output type */}
+      <div>
+        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 6 }}>Output</div>
+        {schema.outputType === 'Unit'
+          ? <span style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>Unit — sin retorno</span>
+          : <>
+              <code style={{ ...mono, color: '#4ade80' }}>{schema.outputType ?? '?'}</code>
+              {schema.outputFields && <FieldList fields={schema.outputFields} />}
+            </>
+        }
+      </div>
+    </div>
+  )
+}
+
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 20 }}>
@@ -177,7 +238,7 @@ function JobDetailPanel({ jobRef, onRetry, onPurge }: {
   useEffect(() => {
     setDetail(null)
     setLoading(true)
-    fetch(`/api/jobs/detail/${jobRef.queue}/${jobRef.id}`)
+    fetch(`/api/jobs/detail/${jobRef.id}`)
       .then(r => r.json())
       .then(d => { if (d.ok && d.found) setDetail(d.job as JobDetail) })
       .catch(() => {})
@@ -187,21 +248,18 @@ function JobDetailPanel({ jobRef, onRetry, onPurge }: {
   const status = job?.status ?? 'UNKNOWN'
   const color  = STATUS_COLOR[status] ?? '#6e7681'
   const name   = detail?.fileName ?? scriptName(jobRef.id)
-  const isProv = name === 'NodeProvisionerAgent'
 
-  // detail.result (from file) takes priority over snapshot result (often null due to server bug)
+  // Input: explicit input object, or env vars if that's what the job used
+  const inputData: unknown = detail?.input ?? detail?.env ?? null
+
+  // Output: result from file (priority) or snapshot
   const rawResult = (detail as Record<string, unknown> | null)?.result as string | null ?? job?.result ?? null
-
-  // Try JSON parse first, then Kotlin toString() parse
   let parsedResult: Record<string, unknown> | null = null
   if (rawResult) {
-    try {
-      parsedResult = JSON.parse(rawResult)
-    } catch {
-      parsedResult = parseKotlinDataClass(rawResult)
-    }
+    try { parsedResult = JSON.parse(rawResult) }
+    catch { parsedResult = parseKotlinDataClass(rawResult) }
   }
-  const isProvResult = parsedResult && 'steps' in parsedResult && 'success' in parsedResult
+  const isProvResult = !!(parsedResult && 'steps' in parsedResult && 'success' in parsedResult)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -268,27 +326,36 @@ function JobDetailPanel({ jobRef, onRetry, onPurge }: {
           </div>
         </Section>
 
-        {/* Input — show while loading or once loaded */}
-        <Section title={isProv ? 'Parámetros' : 'Input'}>
+        {/* Schema */}
+        {detail?.schema && (
+          <Section title="Tipo">
+            <SchemaView schema={detail.schema} />
+          </Section>
+        )}
+
+        {/* Input */}
+        <Section title="Input">
           {loadingDetail
             ? <span style={{ fontSize: 12, color: 'var(--muted)' }}>Cargando…</span>
-            : detail?.input
-              ? <InputView input={detail.input} />
-              : <span style={{ fontSize: 12, color: 'var(--muted)' }}>Sin input disponible</span>
+            : inputData
+              ? <InputView input={inputData} />
+              : <span style={{ fontSize: 12, color: 'var(--muted)' }}>Sin parámetros (script usa env vars del sistema)</span>
           }
         </Section>
 
-        {/* Result */}
-        <Section title="Resultado">
+        {/* Output */}
+        <Section title="Output">
           {rawResult
             ? isProvResult
               ? <ProvisionResultView result={parsedResult!} />
               : parsedResult
                 ? <InputView input={parsedResult} />
                 : <pre style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: 'var(--mono)', whiteSpace: 'pre-wrap', wordBreak: 'break-all', margin: 0 }}>{rawResult}</pre>
-            : status === 'PROCESSING'
-              ? <span style={{ fontSize: 12, color: 'var(--accent)' }}>Ejecutando…</span>
-              : <span style={{ fontSize: 12, color: 'var(--muted)' }}>Sin resultado aún</span>
+            : detail?.logError
+              ? <div style={{ padding: '8px 10px', borderRadius: 6, background: 'rgba(255,0,122,0.08)', border: '1px solid rgba(255,0,122,0.2)', fontSize: 11, color: '#ff007a', fontFamily: 'var(--mono)', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{detail.logError}</div>
+              : status === 'PROCESSING'
+                ? <span style={{ fontSize: 12, color: 'var(--accent)' }}>Ejecutando…</span>
+                : <span style={{ fontSize: 12, color: 'var(--muted)' }}>Sin resultado aún</span>
           }
         </Section>
       </div>
