@@ -213,12 +213,14 @@ function nodeEffectiveStatus(node: NodeInfo): 'ready' | 'stale' | 'offline' {
 }
 
 function NodeCard({ node, onProvision: _onProvision }: { node: NodeInfo; onProvision: () => void }) {
+  const { refreshNodes } = useApp()
   const effective = nodeEffectiveStatus(node)
   const isReady = effective === 'ready'
   const isOff   = node.status === 'uninstalled'
   const isStale = effective === 'stale'
   const [showRunInput, setShowRunInput] = useState(false)
   const [reconnecting, setReconnecting] = useState(false)
+  const [reconnected, setReconnected] = useState(false)
 
   async function handleUninstall() {
     await fetch('/api/run-agent', {
@@ -233,21 +235,22 @@ function NodeCard({ node, onProvision: _onProvision }: { node: NodeInfo; onProvi
 
   async function handleReconnect() {
     setReconnecting(true)
-    await fetch('/api/run-agent', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: 'NodeProvisionerAgent', queue: 'default',
-        env: { NODE_HOST: node.host, NODE_ACTION: 'restart' },
-      }),
-    }).catch(() => {})
-    setTimeout(() => setReconnecting(false), 4000)
+    try {
+      const res = await fetch(`/api/nodes/touch/${encodeURIComponent(node.host)}`)
+      const data = await res.json()
+      if (data.ok) {
+        setReconnected(true)
+        refreshNodes()
+        setTimeout(() => setReconnected(false), 8000)
+      }
+    } catch {}
+    setReconnecting(false)
   }
 
-  const cardClass = isReady ? 'node-card-ready' : isStale ? 'node-card-stale' : 'node-card-off'
-  const chipClass = isReady ? 'chip-green' : isStale ? 'chip-amber' : 'chip-gray'
-  const chipLabel = isReady ? '● online'   : isStale ? '◌ stale'   : '○ offline'
-  const iconColor = isReady ? '#4ade80'    : isStale ? '#fbbf24'    : '#475569'
+  const cardClass = (isReady || reconnected) ? 'node-card-ready' : isStale ? 'node-card-stale' : 'node-card-off'
+  const chipClass = (isReady || reconnected) ? 'chip-green' : isStale ? 'chip-amber' : 'chip-gray'
+  const chipLabel = (isReady || reconnected) ? '● online'   : isStale ? '◌ stale'   : '○ offline'
+  const iconColor = (isReady || reconnected) ? '#4ade80' : isStale ? '#fbbf24' : '#475569'
 
   return (
     <div className={`node-card ${cardClass}`}>
@@ -292,14 +295,14 @@ function NodeCard({ node, onProvision: _onProvision }: { node: NodeInfo; onProvi
 
       {!isOff && (
         <div className="node-card-actions">
-          {isStale && (
+          {isStale && !reconnected && (
             <button className="node-action-btn node-action-primary" onClick={handleReconnect}
               disabled={reconnecting}>
               <Wifi size={11} style={{ display: 'inline', marginRight: 4 }} />
               {reconnecting ? 'Connecting…' : 'Reconnect'}
             </button>
           )}
-          {isReady && (
+          {(isReady || reconnected) && (
             <button className="node-action-btn" onClick={() => setShowRunInput(v => !v)}>
               <Play size={11} style={{ display: 'inline', marginRight: 4 }} />Run script
             </button>

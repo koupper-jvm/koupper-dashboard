@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { Routes, Route, useNavigate } from 'react-router-dom'
 import { useSSE } from './hooks/useSSE'
 import { useNodes } from './hooks/useNodes'
@@ -103,10 +103,12 @@ function Shell() {
 
 export default function App() {
   const { snapshot } = useSSE()
-  const nodes = useNodes()
+  const [nodesTick, setNodesTick] = useState(0)
+  const nodes = useNodes(nodesTick)
+  const refreshNodes = () => setNodesTick(t => t + 1)
 
   return (
-    <AppProvider snapshot={snapshot} nodes={nodes}>
+    <AppProvider snapshot={snapshot} nodes={nodes} refreshNodes={refreshNodes}>
       <Shell />
     </AppProvider>
   )

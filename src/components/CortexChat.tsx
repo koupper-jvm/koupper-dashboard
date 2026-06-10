@@ -1,6 +1,5 @@
 import { useRef, useState, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { Trash2 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 
 function stripMd(text: string): string {
@@ -41,6 +40,7 @@ interface Props {
 
 const SESSIONS_KEY = 'cortex-chat-sessions'
 const ACTIVE_KEY   = 'cortex-active-session'
+const PENDING_KEY  = 'cortex-chat-pending'
 
 function loadSessions(): ChatSession[] {
   try {
@@ -74,19 +74,15 @@ function cleanLogLines(lines: string[]): string {
   for (const line of stripped) {
     const s = line.trimStart()
 
-    // Empty line ends any tool result block
     if (s.length === 0) {
       inToolResult = false
       continue
     }
 
-    // Tool result line — skip it and mark state
     if (s.startsWith('↳')) { inToolResult = true; continue }
 
-    // Skip continuation lines of multi-line tool results (JSON, etc.)
     if (inToolResult) continue
 
-    // Skip internal log markers
     if (
       s.startsWith('▶') || s.startsWith('━') || s.startsWith('◈') ||
       s.startsWith('→') || s.startsWith('↺') || s.startsWith('⏳') ||
@@ -113,11 +109,24 @@ export function CortexChat({ onJobSelect, onSpeak, onStop }: Props) {
   const [thinking, setThinking] = useState(false)
   const [sessions, setSessions] = useState<ChatSession[]>(loadSessions)
   const [showHistory, setShowHistory] = useState(false)
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const chatRef = useRef<HTMLDivElement>(null)
   const currentSessionId = useRef<string | null>(_initId)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  // Restore pending poll on refresh
   useEffect(() => {
+    try {
+      const raw = localStorage.getItem(PENDING_KEY)
+      if (!raw) return
+      const { sessionId, linesBeforeSend } = JSON.parse(raw)
+      if (sessionId === currentSessionId.current) {
+        setThinking(true)
+        onJobSelect({ queue: 'cortex', id: 'cortex-session' })
+        pollResponse(linesBeforeSend)
+      }
+    } catch {}
+
     return () => {
       if (pollRef.current !== null) clearInterval(pollRef.current)
     }
@@ -131,7 +140,7 @@ export function CortexChat({ onJobSelect, onSpeak, onStop }: Props) {
   }
 
   function toggleMute() {
-    if (!voiceMuted) onStop?.()  // silencia audio en curso al mutar
+    if (!voiceMuted) onStop?.()
     ctxToggleMute()
   }
 
@@ -145,7 +154,6 @@ export function CortexChat({ onJobSelect, onSpeak, onStop }: Props) {
     }, 50)
   }
 
-  // Save current session whenever messages change (if non-empty)
   useEffect(() => {
     if (messages.length === 0) return
     const all = loadSessions()
@@ -164,7 +172,6 @@ export function CortexChat({ onJobSelect, onSpeak, onStop }: Props) {
         return
       }
     }
-    // New session
     const id = `session-${Date.now()}`
     currentSessionId.current = id
     const newSession: ChatSession = { id, title, messages, createdAt: Date.now() }
@@ -178,10 +185,12 @@ export function CortexChat({ onJobSelect, onSpeak, onStop }: Props) {
     cancelPoll()
     currentSessionId.current = null
     localStorage.removeItem(ACTIVE_KEY)
+    localStorage.removeItem(PENDING_KEY)
     setMessages([])
     setThinking(false)
     setInput('')
     setShowHistory(false)
+    setPendingDeleteId(null)
   }
 
   function loadSession(session: ChatSession) {
@@ -191,28 +200,30 @@ export function CortexChat({ onJobSelect, onSpeak, onStop }: Props) {
     setThinking(false)
     setInput('')
     setShowHistory(false)
+    setPendingDeleteId(null)
     scrollDown()
   }
 
-  function deleteSession(id: string, e: React.MouseEvent) {
+  function requestDelete(id: string, e: React.MouseEvent) {
     e.stopPropagation()
+    setPendingDeleteId(id)
+  }
+
+  function confirmDelete(id: string) {
     const updated = sessions.filter(s => s.id !== id)
     saveSessions(updated)
     setSessions(updated)
     if (currentSessionId.current === id) {
       currentSessionId.current = null
+      localStorage.removeItem(ACTIVE_KEY)
+      localStorage.removeItem(PENDING_KEY)
       setMessages([])
     }
+    setPendingDeleteId(null)
   }
 
-  function clearAllHistory() {
-    if (!confirm('¿Borrar todo el historial de chat?')) return
-    saveSessions([])
-    setSessions([])
-    currentSessionId.current = null
-    localStorage.removeItem(ACTIVE_KEY)
-    setMessages([])
-    setShowHistory(false)
+  function cancelDelete() {
+    setPendingDeleteId(null)
   }
 
   async function pollResponse(linesBeforeSend: number) {
@@ -223,7 +234,12 @@ export function CortexChat({ onJobSelect, onSpeak, onStop }: Props) {
     let lastRawLen  = linesBeforeSend
 
     pollRef.current = setInterval(async () => {
-      if (++attempts > 150) { cancelPoll(); setThinking(false); return }
+      if (++attempts > 150) {
+        cancelPoll()
+        setThinking(false)
+        localStorage.removeItem(PENDING_KEY)
+        return
+      }
       try {
         const res  = await fetch('/api/logs/cortex-session?queue=cortex')
         const data = await res.json()
@@ -237,6 +253,7 @@ export function CortexChat({ onJobSelect, onSpeak, onStop }: Props) {
           if (rawLen === lastRawLen) {
             if (++stableCount >= 3) {
               cancelPoll()
+              localStorage.removeItem(PENDING_KEY)
               setThinking(false)
               setMessages(prev => [...prev, { role: 'cortex', text: response }])
               scrollDown()
@@ -275,6 +292,10 @@ export function CortexChat({ onJobSelect, onSpeak, onStop }: Props) {
       const data = await res.json()
       if (data.ok) {
         setThinking(true)
+        localStorage.setItem(PENDING_KEY, JSON.stringify({
+          sessionId: currentSessionId.current,
+          linesBeforeSend: linesBefore,
+        }))
         onJobSelect({ queue: 'cortex', id: 'cortex-session' })
         pollResponse(linesBefore)
       }
@@ -291,7 +312,7 @@ export function CortexChat({ onJobSelect, onSpeak, onStop }: Props) {
               {sessions.length > 0 && (
                 <button
                   className="chat-history-btn"
-                  onClick={() => setShowHistory(s => !s)}
+                  onClick={() => { setShowHistory(s => !s); setPendingDeleteId(null) }}
                   title="Chat history"
                 >
                   {showHistory ? '▾' : '▸'} History ({sessions.length})
@@ -299,11 +320,6 @@ export function CortexChat({ onJobSelect, onSpeak, onStop }: Props) {
               )}
             </div>
             <div className="chat-header-actions">
-              {sessions.length > 0 && (
-                <button className="chat-clear-btn" onClick={clearAllHistory} title="Borrar todo el historial">
-                  <Trash2 size={13} />
-                </button>
-              )}
               <button className="new-chat-btn" onClick={newChat} title="New conversation">＋ New</button>
             </div>
           </div>
@@ -311,18 +327,26 @@ export function CortexChat({ onJobSelect, onSpeak, onStop }: Props) {
           {showHistory && (
             <div className="chat-history-list">
               {sessions.map(s => (
-                <div
-                  key={s.id}
-                  className={`chat-history-item ${currentSessionId.current === s.id ? 'active' : ''}`}
-                  onClick={() => loadSession(s)}
-                >
-                  <span className="chat-history-title">{s.title}</span>
-                  <button
-                    className="chat-history-del"
-                    onClick={e => deleteSession(s.id, e)}
-                    title="Delete"
-                  >×</button>
-                </div>
+                pendingDeleteId === s.id ? (
+                  <div key={s.id} className="chat-confirm-row">
+                    <span className="chat-confirm-text">¿Eliminar "{s.title.substring(0, 20)}{s.title.length > 20 ? '…' : ''}"?</span>
+                    <button className="chat-confirm-yes" onClick={() => confirmDelete(s.id)}>Sí</button>
+                    <button className="chat-confirm-no" onClick={cancelDelete}>No</button>
+                  </div>
+                ) : (
+                  <div
+                    key={s.id}
+                    className={`chat-history-item ${currentSessionId.current === s.id ? 'active' : ''}`}
+                    onClick={() => loadSession(s)}
+                  >
+                    <span className="chat-history-title">{s.title}</span>
+                    <button
+                      className="chat-history-del"
+                      onClick={e => requestDelete(s.id, e)}
+                      title="Eliminar conversación"
+                    >×</button>
+                  </div>
+                )
               ))}
             </div>
           )}
