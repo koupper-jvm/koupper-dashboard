@@ -8,6 +8,7 @@ export interface NodeInfo {
   registeredAt: string
   sshUser?: string
   sshKeyPath?: string
+  workspacePath?: string
 }
 
 export function useNodes(refreshTick?: number) {

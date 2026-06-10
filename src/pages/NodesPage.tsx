@@ -1,9 +1,38 @@
 import { useState, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { Server, Wifi, WifiOff, Bot, Clock, Plus, Trash2, X, Play } from 'lucide-react'
+import { Server, Wifi, WifiOff, Clock, Plus, Trash2, X, Play, FolderOpen } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import type { NodeInfo } from '../hooks/useNodes'
+
+const AGENT_INFO: Record<string, { label: string; desc: string }> = {
+  FileIndexerAgent:    { label: 'Indexer',   desc: 'Escanea y cataloga archivos en el workspace' },
+  SummarizerAgent:     { label: 'Summarizer', desc: 'Resume contenido usando el LLM del nodo' },
+  RssFeedAgent:        { label: 'RSS',        desc: 'Descarga e indexa feeds RSS' },
+  KnowledgeQueryAgent: { label: 'Query',      desc: 'Responde preguntas desde la base de conocimiento' },
+  HeartbeatAgent:      { label: 'Heartbeat',  desc: 'Reporta salud del nodo al central cada N segundos' },
+}
+
+const ROLES = [
+  {
+    value: 'indexer',
+    label: 'Indexer',
+    desc: 'Vigila y cataloga archivos del workspace',
+    installs: ['FileIndexerAgent'],
+  },
+  {
+    value: 'summarizer',
+    label: 'Summarizer',
+    desc: 'Indexa + resume + consume RSS feeds',
+    installs: ['FileIndexerAgent', 'SummarizerAgent', 'RssFeedAgent'],
+  },
+  {
+    value: 'full',
+    label: 'Full',
+    desc: 'Todos los agentes habilitados',
+    installs: ['FileIndexerAgent', 'SummarizerAgent', 'RssFeedAgent', 'KnowledgeQueryAgent', 'HeartbeatAgent'],
+  },
+]
 
 const sshCredsKey = (host: string) => `cortex-ssh-${host}`
 
@@ -27,6 +56,7 @@ interface ProvisionFormData {
   password: string
   port: string
   role: string
+  workspacePath: string
   llmUrl: string
   llmModel: string
   centralUrl: string
@@ -35,12 +65,13 @@ interface ProvisionFormData {
 function ProvisionModal({ onClose }: { onClose: () => void }) {
   const [form, setForm] = useState<ProvisionFormData>({
     host: '',
-    user: 'root',
+    user: 'pi',
     password: '',
     port: '22',
-    role: 'worker',
-    llmUrl: 'http://localhost:1234/v1',
-    llmModel: 'gemma-3-12b',
+    role: 'indexer',
+    workspacePath: '/home/pi/files',
+    llmUrl: 'http://192.168.56.1:1234',
+    llmModel: 'qwen/qwen3-5-9b',
     centralUrl: '',
   })
   const [submitting, setSubmitting] = useState(false)
@@ -49,6 +80,8 @@ function ProvisionModal({ onClose }: { onClose: () => void }) {
   function set(field: keyof ProvisionFormData, value: string) {
     setForm(f => ({ ...f, [field]: value }))
   }
+
+  const selectedRole = ROLES.find(r => r.value === form.role) ?? ROLES[0]
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -68,15 +101,14 @@ function ProvisionModal({ onClose }: { onClose: () => void }) {
             password: form.password || undefined,
             port: parseInt(form.port, 10) || 22,
             role: form.role,
+            workspacePath: form.workspacePath || undefined,
             llmUrl: form.llmUrl,
             llmModel: form.llmModel,
             centralUrl: form.centralUrl || 'http://192.168.1.19:18083',
           },
         }),
       })
-    } catch {
-      // ignore
-    }
+    } catch { /* ignore */ }
     setSubmitting(false)
     setToast(true)
   }
@@ -110,54 +142,80 @@ function ProvisionModal({ onClose }: { onClose: () => void }) {
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
             <div className="modal-field">
-              <label className="modal-label">Host (IP or hostname) *</label>
+              <label className="modal-label">Host (IP o hostname) *</label>
               <input className="modal-input" value={form.host} onChange={e => set('host', e.target.value)}
                 placeholder="192.168.1.100" required />
             </div>
             <div className="modal-row">
               <div className="modal-field">
-                <label className="modal-label">SSH User</label>
+                <label className="modal-label">Usuario SSH</label>
                 <input className="modal-input" value={form.user} onChange={e => set('user', e.target.value)}
-                  placeholder="root" />
+                  placeholder="pi" />
               </div>
               <div className="modal-field">
-                <label className="modal-label">SSH Port</label>
+                <label className="modal-label">Puerto SSH</label>
                 <input className="modal-input" value={form.port} onChange={e => set('port', e.target.value)}
                   placeholder="22" />
               </div>
             </div>
             <div className="modal-field">
-              <label className="modal-label">SSH Password</label>
+              <label className="modal-label">Contraseña SSH</label>
               <input className="modal-input" type="password" value={form.password}
                 onChange={e => set('password', e.target.value)} placeholder="••••••••" />
             </div>
+
+            {/* Role selector */}
             <div className="modal-field">
-              <label className="modal-label">Node Role</label>
-              <input className="modal-input" value={form.role} onChange={e => set('role', e.target.value)}
-                placeholder="worker" />
+              <label className="modal-label">Rol del nodo</label>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                {ROLES.map(r => (
+                  <button key={r.value} type="button"
+                    className={`run-modal-tab ${form.role === r.value ? 'active' : ''}`}
+                    onClick={() => set('role', r.value)}>
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>{selectedRole.desc}</div>
+              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                {selectedRole.installs.map(a => (
+                  <span key={a} style={{
+                    fontSize: 10, padding: '2px 6px', borderRadius: 4,
+                    background: 'rgba(99,179,237,0.12)', color: 'var(--accent)', fontFamily: 'var(--mono)'
+                  }}>{a}</span>
+                ))}
+              </div>
             </div>
+
+            {/* Workspace */}
+            <div className="modal-field">
+              <label className="modal-label">Workspace (directorio a indexar)</label>
+              <input className="modal-input" value={form.workspacePath} onChange={e => set('workspacePath', e.target.value)}
+                placeholder="/home/pi/files" />
+            </div>
+
             <div className="modal-row">
               <div className="modal-field">
                 <label className="modal-label">LAN LLM URL</label>
                 <input className="modal-input" value={form.llmUrl} onChange={e => set('llmUrl', e.target.value)}
-                  placeholder="http://localhost:1234/v1" />
+                  placeholder="http://192.168.56.1:1234" />
               </div>
               <div className="modal-field">
-                <label className="modal-label">LLM Model</label>
+                <label className="modal-label">Modelo LLM</label>
                 <input className="modal-input" value={form.llmModel} onChange={e => set('llmModel', e.target.value)}
-                  placeholder="gemma-3-12b" />
+                  placeholder="qwen/qwen3-5-9b" />
               </div>
             </div>
             <div className="modal-field">
-              <label className="modal-label">CORTEX Central URL (optional)</label>
+              <label className="modal-label">CORTEX Central URL (opcional)</label>
               <input className="modal-input" value={form.centralUrl} onChange={e => set('centralUrl', e.target.value)}
-                placeholder="http://cortex-central:8080" />
+                placeholder="http://192.168.1.19:18083" />
             </div>
           </div>
           <div className="modal-footer">
-            <button type="button" className="modal-cancel" onClick={onClose}>Cancel</button>
+            <button type="button" className="modal-cancel" onClick={onClose}>Cancelar</button>
             <button type="submit" className="modal-submit" disabled={submitting || !form.host.trim()}>
-              {submitting ? 'Starting…' : 'Provision'}
+              {submitting ? 'Iniciando…' : 'Provision'}
             </button>
           </div>
         </form>
@@ -409,19 +467,40 @@ function NodeCard({ node, onProvision: _onProvision }: { node: NodeInfo; onProvi
             {node.role && node.role !== 'none' && (
               <div className="node-meta-row">
                 <Server size={13} />
-                <span>Role: <strong>{node.role}</strong></span>
+                <span>Rol: <strong>{node.role}</strong></span>
+              </div>
+            )}
+            {node.workspacePath && (
+              <div className="node-meta-row" title={node.workspacePath}>
+                <FolderOpen size={13} />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {node.workspacePath}
+                </span>
               </div>
             )}
             {node.agents.length > 0 && (
-              <div className="node-meta-row">
-                <Bot size={13} />
-                <span>Agents: {node.agents.join(', ')}</span>
+              <div style={{ marginTop: 6 }}>
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                  {node.agents.map(a => {
+                    const name = a.replace(/\.kts$/, '')
+                    const info = AGENT_INFO[name]
+                    return (
+                      <span key={a} title={info?.desc ?? name} style={{
+                        fontSize: 10, padding: '2px 7px', borderRadius: 4,
+                        background: 'rgba(99,179,237,0.10)', color: 'var(--accent)',
+                        fontFamily: 'var(--mono)', cursor: 'default'
+                      }}>
+                        {info?.label ?? name}
+                      </span>
+                    )
+                  })}
+                </div>
               </div>
             )}
             {node.registeredAt && (
-              <div className="node-meta-row">
+              <div className="node-meta-row" style={{ marginTop: 6 }}>
                 <Clock size={13} />
-                <span>Last seen {timeAgo(node.registeredAt)}</span>
+                <span>Visto {timeAgo(node.registeredAt)}</span>
               </div>
             )}
           </div>
